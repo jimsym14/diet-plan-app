@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Diet Plan App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<h1>Personal Diet Plan</h1>
+<div class="form">
+    <input id="weight" type="number" placeholder="Weight (kg)" required>
+    <input id="height" type="number" placeholder="Height (cm)" required>
+    <input id="age" type="number" placeholder="Age" required>
+    <select id="gender">
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+    </select>
+    <button onclick="generatePlan()">Generate Plan</button>
+</div>
+<table id="dietTable">
+    <thead>
+    <tr><th>Meal</th><th>Food</th><th>Calories</th></tr>
+    </thead>
+    <tbody></tbody>
+</table>
+<script>
+    function generatePlan() {
+        const weight = parseFloat(document.getElementById('weight').value);
+        const height = parseFloat(document.getElementById('height').value);
+        const age = parseInt(document.getElementById('age').value);
+        const gender = document.getElementById('gender').value;
+        if (isNaN(weight) || isNaN(height) || isNaN(age)) {
+            alert('Please fill all fields.');
+            return;
+        }
+        // Call Java method
+        window.javaBridge.generatePlan(weight, height, age, gender);
+    }
+    function updateTable(meals) {
+        const tbody = document.getElementById('dietTable').getElementsByTagName('tbody')[0];
+        tbody.innerHTML = meals.map(m => `<tr><td>${m.meal}</td><td>${m.food}</td><td>${m.calories}</td></tr>`).join('');
+    }
+</script>
+</body>
+</html>
