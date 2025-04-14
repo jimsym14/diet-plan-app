@@ -6,6 +6,13 @@ public class User {
     private String gender;
 
     public User(double weight, double height, int age, String gender) {
+        if (weight < 30 || weight > 200) {
+            throw new IllegalArgumentException("Weight must be between 30 and 200 kg");
+        }
+        if (age < 5 || age > 100) {
+            throw new IllegalArgumentException("Age must be between 5 and 100");
+        }
+
         this.weight = weight;
         this.height = height;
         this.age = age;
