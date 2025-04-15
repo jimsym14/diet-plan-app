@@ -1,40 +1,196 @@
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    padding: 20px;
+    background-color: #b5deb5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
     margin: 0;
+    font-family: 'Poppins', sans-serif;
+    color: #2d5d3a;
+    padding: 40px 0;
 }
-h1 {
-    color: #333;
-    text-align: center;
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow: hidden;
 }
-.form {
-    margin: 20px 0;
-    text-align: center;
+.main-content {
+    flex: 1;
+    padding: 40px;
+    background-color: rgba(229, 245, 224, 0.85);
+
 }
-input, select, button {
+
+.main-content h1 {
+    margin-bottom: 15px;
+    font-size: 24px;
+    margin-top: 0px;
+}
+
+.user-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 400px;
+}
+
+.user-form label {
+    display: flex;
+    flex-direction: column;
+    font-weight: bold;
+}
+
+.user-form input,
+.user-form select {
     padding: 10px;
-    margin: 5px;
     border: 1px solid #ccc;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 16px;
 }
-button {
-    background-color: #0078D7;
+
+.user-form button {
+    margin-top: 20px;
+    padding: 12px;
+    background-color: #4a7856;
     color: white;
+    font-family: 'Poppins', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: background-color 0.3s ease;
+    display: block;
 }
-button:hover {
-    background-color: #005BB5;
+.user-form button:hover {
+    background-color: #3c6347;
 }
-table {
-    width: 80%;
-    margin: 20px auto;
-    border-collapse: collapse;
-    background-color: white;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+.container {
+    display: flex;
+    height: 90vh;
+    max-height: 90vh;
+    max-width: 1400px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    margin-bottom: 40px;
+    position: relative;
+    z-index: 1;
+    min-height: 90vh;
+    overflow: visible;
+
+
+
 }
+
+.sidebar {
+    width: 250px;
+    background-color: rgba(74, 120, 86, 0.9);
+    padding-left: 10px;
+    color: white;
+}
+sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 30px;
+}
+
+.sidebar li {
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+h1, h2, .sidebar h2 {
+    color: #1e4028;
+    font-weight: 600;
+}
+select {
+    font-family: 'Poppins', sans-serif; /* ίδια γραμματοσειρά */
+    font-size: 16px;
+    color: #2d5d3a; /* σκούρο πράσινο – ίδιο με τα υπόλοιπα */
+    background-color: #f3fff3; /* ή ανοιχτό πράσινο */
+    border: 1px solid #b5cdb0;
+    border-radius: 6px;
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.fruit {
+    position: absolute;
+    width: 120px;
+    opacity: 0.3;
+    z-index: 0;
+    animation: float 8s ease-in-out infinite;
+    pointer-events: none;
+
+    filter: drop-shadow(0 0 4px rgba(0,0,0,0.1));
+}
+
+.fruit1 {
+    top: 5%;
+    left: 60%;
+    animation-delay: 0s;
+}
+
+.fruit2 {
+    top: 25%;
+    left: 10%;
+    opacity: 0.5;
+    animation-delay: 2s;
+}
+
+.fruit3 {
+    top: 65%;
+    left: 5%;
+    opacity: 0.5;
+    animation-delay: 4s;
+}
+.fruit4 {
+    top: 3%;
+    left: 5%;
+    opacity: 0.3;
+    animation-delay: 1s;
+}
+
+.fruit5 {
+    top: 50%;
+    left: 35%;
+    opacity: 0.5;
+    animation-delay: 3s;
+}
+
+.fruit6 {
+    top: 85%;
+    right: 5%;
+    animation-delay: 5s;
+}
+.fruit7 {
+    top: 5%;
+    right: 3%;
+    opacity: 0.5;
+    animation-delay: 1.5s;
+}
+
+.fruit8 {
+    top: 30%;
+    right: 6%;
+    opacity: 0.5;
+    animation-delay: 2.5s;
+}
+
+
+
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
 th, td {
     border: 1px solid #ddd;
     padding: 12px;

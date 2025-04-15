@@ -3,25 +3,52 @@
 <head>
     <title>Diet Plan App</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
 </head>
 <body>
-<h1>Personal Diet Plan</h1>
-<div class="form">
-    <input id="weight" type="number" placeholder="Weight (kg)" required>
-    <input id="height" type="number" placeholder="Height (cm)" required>
-    <input id="age" type="number" placeholder="Age" required>
+<img src="orange1.png" class="fruit fruit1">
+<img src="apple1.png" class="fruit fruit2">
+<img src="banana1.png" class="fruit fruit3">
+<img src="banana1.png" class="fruit fruit4">
+<img src="orange1.png" class="fruit fruit5">
+<img src="apple1.png" class="fruit fruit6">
+<img src="orange1.png" class="fruit fruit7">
+<img src="banana1.png" class="fruit fruit8">
+
+<div class="container">
+
+    <aside class="sidebar">
+<h2>DIET PLAN</h2>
+        <ul>
+            <li><span></span> Dashboard</li>
+            <li><span></span> Clients</li>
+            <li><span></span> Meal Plans</li>
+            <li><span></span> Recipes</li>
+            <li><span></span> Settings</li>
+        </ul>
+    </aside>
+    <main class="main-content">
+        <h1>Enter User Information</h1>
+        <form class="user-form">
+            <label>Full Name <input type="text" /></label>
+            <label>Email <input type="email" /></label>
+            <div class="row">
+                <label>Age <input type="number" /></label>
+                <label>Height (cm) <input type="number" /></label>
+                <label>Current Weight (kg) <input type="number" /></label>
+            </div>
+            <label for="gender">Gender</label>
     <select id="gender">
         <option value="male">Male</option>
         <option value="female">Female</option>
+        <option value="other">Other</option>
     </select>
     <button onclick="generatePlan()">Generate Plan</button>
+        </form>
+    </main>
 </div>
-<table id="dietTable">
-    <thead>
-    <tr><th>Meal</th><th>Food</th><th>Calories</th></tr>
-    </thead>
-    <tbody></tbody>
-</table>
+
 <script>
     function generatePlan() {
         const weight = parseFloat(document.getElementById('weight').value);
@@ -39,6 +66,7 @@
         const tbody = document.getElementById('dietTable').getElementsByTagName('tbody')[0];
         tbody.innerHTML = meals.map(m => `<tr><td>${m.meal}</td><td>${m.food}</td><td>${m.calories}</td></tr>`).join('');
     }
+
 </script>
 </body>
 </html>
