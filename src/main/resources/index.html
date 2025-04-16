@@ -4,9 +4,8 @@
     <title>Diet Plan App</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
 </head>
-<body>
+<body class="index-page">
 <img src="orange1.png" class="fruit fruit1">
 <img src="apple1.png" class="fruit fruit2">
 <img src="banana1.png" class="fruit fruit3">
@@ -17,9 +16,8 @@
 <img src="banana1.png" class="fruit fruit8">
 
 <div class="container">
-
     <aside class="sidebar">
-    <h2>DIET PLAN</h2>
+        <h2>DIET PLAN</h2>
         <ul>
             <li><span></span> Dashboard</li>
             <li><span></span> Clients</li>
@@ -30,43 +28,59 @@
     </aside>
     <main class="main-content">
         <h1>Enter User Information</h1>
-        <form class="user-form">
-            <label>Full Name <input type="text" /></label>
-            <label>Email <input type="email" /></label>
+        <form class="user-form" id="dietForm" onsubmit="return false;">
+            <label>Full Name <input type="text" id="fullname" required /></label>
+            <label>Email <input type="email" id="email" required /></label>
             <div class="row">
-                <label>Age <input type="number" /></label>
-                <label>Height (cm) <input type="number" /></label>
-                <label>Current Weight (kg) <input type="number" /></label>
+                <label>Age <input type="number" id="age" min="5" max="100" required /></label>
+                <label>Height (cm) <input type="number" id="height" min="100" max="250" required /></label>
+                <label>Current Weight (kg) <input type="number" id="weight" min="30" max="200" required /></label>
             </div>
             <label for="gender">Gender</label>
-    <select id="gender">
-        <option value="male">Male</option>
-        <option value="female">Female</option>
-        <option value="other">Other</option>
-    </select>
-    <button onclick="generatePlan()">Generate Plan</button>
+            <select id="gender">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+            </select>
+            <button type="button" onclick="generatePlan()">Generate Plan</button>
         </form>
     </main>
 </div>
 
 <script>
-    function generatePlan() {
+    function validateForm() {
         const weight = parseFloat(document.getElementById('weight').value);
         const height = parseFloat(document.getElementById('height').value);
         const age = parseInt(document.getElementById('age').value);
-        const gender = document.getElementById('gender').value;
-        if (isNaN(weight) || isNaN(height) || isNaN(age)) {
-            alert('Please fill all fields.');
-            return;
+        const fullname = document.getElementById('fullname').value;
+        const email = document.getElementById('email').value;
+
+        if (!fullname || !email || isNaN(weight) || isNaN(height) || isNaN(age)) {
+            alert('Please fill all required fields correctly.');
+            return false;
         }
-        // Call Java method
-        window.javaBridge.generatePlan(weight, height, age, gender);
-    }
-    function updateTable(meals) {
-        const tbody = document.getElementById('dietTable').getElementsByTagName('tbody')[0];
-        tbody.innerHTML = meals.map(m => `<tr><td>${m.meal}</td><td>${m.food}</td><td>${m.calories}</td></tr>`).join('');
+
+        if (weight < 30 || weight > 200) {
+            alert('Weight must be between 30 and 200 kg.');
+            return false;
+        }
+
+        if (height < 100 || height > 250) {
+            alert('Height must be between 100 and 250 cm.');
+            return false;
+        }
+
+        if (age < 5 || age > 100) {
+            alert('Age must be between 5 and 100 years.');
+            return false;
+        }
+
+        return true;
     }
 
+    function generatePlan() {
+        window.location.href = 'meals.html';
+    }
 </script>
 </body>
 </html>

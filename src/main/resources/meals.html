@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Your Diet Plan</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Roboto+Mono:wght@700&display=swap" rel="stylesheet">
+    <style>
+        #debugPanel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            font-family: monospace;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        .debug-message { color: #4CAF50; }
+        .error-message { color: #f44336; }
+    </style>
+</head>
+<body class="meals-page">
+    <div class="top-banner">
+        <button class="nav-btn" onclick="goBack()">Back to Form</button>
+        <div class="days-selector">
+            <button class="day-btn">MO</button>
+            <button class="day-btn">TU</button>
+            <button class="day-btn">WE</button>
+            <button class="day-btn">TH</button>
+            <button class="day-btn">FR</button>
+            <button class="day-btn">SA</button>
+            <button class="day-btn">SU</button>
+        </div>
+        <div class="total-calories">
+            <span class="calorie-label">Daily Target:</span>
+            <span class="calorie-value">2000 kcal</span>
+        </div>
+        <button class="nav-btn">Finish Plan</button>
+    </div>
+
+    <h1 class="main-title">Your Diet Plan</h1>
+    
+    <div class="search-wrapper">
+        <div class="search-container">
+            <input type="text" placeholder="Search for foods...">
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        </div>
+    </div>
+    
+    <div class="meal-container" id="mealContainer">
+        <!-- Meal cards will be inserted here by JavaScript -->
+    </div>
+    
+    <div id="debugPanel"></div>
+    
+    <script>
+        let bridge = null;
+        let isDebugMode = false;
+
+        function showDebug(message) {
+            if (!isDebugMode) return;
+            const debugPanel = document.getElementById('debugPanel');
+            const msgElement = document.createElement('div');
+            msgElement.className = 'debug-message';
+            msgElement.textContent = `[DEBUG] ${message}`;
+            debugPanel.appendChild(msgElement);
+            debugPanel.scrollTop = debugPanel.scrollHeight;
+        }
+
+        function showError(message) {
+            const debugPanel = document.getElementById('debugPanel');
+            debugPanel.style.display = 'block';
+            const msgElement = document.createElement('div');
+            msgElement.className = 'error-message';
+            msgElement.textContent = `[ERROR] ${message}`;
+            debugPanel.appendChild(msgElement);
+            debugPanel.scrollTop = debugPanel.scrollHeight;
+        }
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+        
+        function createMealCards(meals) {
+            showDebug('Creating meal cards...');
+            try {
+                if (!Array.isArray(meals)) {
+                    if (typeof meals === 'string') {
+                        try {
+                            meals = JSON.parse(meals);
+                            showDebug('Successfully parsed meals string to JSON');
+                        } catch (e) {
+                            showError('Failed to parse meals string: ' + e.message);
+                            return;
+                        }
+                    } else {
+                        showError('Invalid meals data type: ' + typeof meals);
+                        return;
+                    }
+                }
+
+                const container = document.getElementById('mealContainer');
+                if (!container) {
+                    showError('Meal container element not found!');
+                    return;
+                }
+
+                showDebug(`Processing ${meals.length} meals`);
+                container.innerHTML = '';
+                
+                meals.forEach((meal, index) => {
+                    try {
+                        const mealCard = document.createElement('div');
+                        mealCard.className = 'meal-card';
+                        
+                        // Validate required meal properties
+                        if (!meal.name) {
+                            showError(`Meal at index ${index} is missing name property`);
+                            return;
+                        }
+
+                        const hasValidMacros = 
+                            typeof meal.protein === 'number' && 
+                            typeof meal.carbs === 'number' && 
+                            typeof meal.fat === 'number';
+                        
+                        mealCard.innerHTML = `
+                            <h3>${meal.name}</h3>
+                            <img class='meal-image' src='${meal.imageUrl}' onerror="this.src='https://via.placeholder.com/200x150?text=No+Image'">
+                            <div class="stats-row">
+                                <span class="stats-text">${meal.calories ? `${Math.round(meal.calories)} kcal` : 'Calories N/A'}</span>
+                                <span class="stats-text">${meal.servingWeight ? `${meal.servingWeight}g` : ''}</span>
+                            </div>
+                            <p class="nutrients">
+                                ${hasValidMacros ? 
+                                    `Protein: ${meal.protein.toFixed(1)}g | Carbs: ${meal.carbs.toFixed(1)}g | Fat: ${meal.fat.toFixed(1)}g` : 
+                                    'Nutrition data unavailable'}
+                            </p>
+                            <div class="tags">
+                                ${meal.vegan ? '<div class="tag vegan-tag">Vegan</div>' : ''}
+                                ${meal.vegetarian ? '<div class="tag vegetarian-tag">Vegetarian</div>' : ''}
+                                ${meal.glutenFree ? '<div class="tag gf-tag">Gluten Free</div>' : ''}
+                                ${meal.dairyFree ? '<div class="tag df-tag">Dairy Free</div>' : ''}
+                                ${meal.veryHealthy ? '<div class="tag healthy-tag">Healthy</div>' : ''}
+                                ${meal.cheap ? '<div class="tag cheap-tag">Budget</div>' : ''}
+                                ${meal.sustainable ? '<div class="tag eco-tag">Eco</div>' : ''}
+                                ${meal.lowFodmap ? '<div class="tag fodmap-tag">Low FODMAP</div>' : ''}
+                            </div>
+                        `;
+                        
+                        container.appendChild(mealCard);
+                        showDebug(`Successfully created card for meal: ${meal.name}`);
+                    } catch (e) {
+                        showError(`Error creating meal card at index ${index}: ${e.message}`);
+                    }
+                });
+                showDebug('Finished creating all meal cards');
+            } catch (e) {
+                showError('Error in createMealCards: ' + e.message);
+            }
+        }
+
+        // Add scroll behavior for search bar
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchContainer = document.querySelector('.search-container');
+            let lastScroll = 0;
+
+            window.addEventListener('scroll', () => {
+                const currentScroll = window.pageYOffset;
+                if (currentScroll > 150) {
+                    searchContainer.classList.add('fade');
+                } else {
+                    searchContainer.classList.remove('fade');
+                }
+                lastScroll = currentScroll;
+            });
+
+            // Initialize bridge
+            initializeBridge();
+        });
+
+        // Bridge initialization
+        function initializeBridge() {
+            showDebug('Initializing bridge...');
+            try {
+                if (window.bridge) {
+                    showDebug('JavaFX bridge initialized');
+                    bridge = window.bridge;
+                    // Test the bridge
+                    bridge.postMessage('Bridge test from meals.html');
+                } else {
+                    console.log('Running in development mode - bridge not available');
+                }
+            } catch (e) {
+                showError('Bridge initialization failed: ' + e.message);
+            }
+        }
+
+        // Toggle debug mode with keyboard shortcut (Ctrl+D)
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'd') {
+                isDebugMode = !isDebugMode;
+                const debugPanel = document.getElementById('debugPanel');
+                debugPanel.style.display = isDebugMode ? 'block' : 'none';
+                showDebug('Debug mode ' + (isDebugMode ? 'enabled' : 'disabled'));
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click handlers for days and meal cards
+            const dayBtns = document.querySelectorAll('.day-btn');
+            dayBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    dayBtns.forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                });
+            });
+
+            // Add click handler for meal cards (will be applied to new cards)
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('.meal-card')) {
+                    const card = e.target.closest('.meal-card');
+                    card.classList.toggle('selected');
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
