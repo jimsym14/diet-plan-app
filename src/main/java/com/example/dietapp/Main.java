@@ -31,13 +31,16 @@ public class Main extends Application {
                     JSObject window = (JSObject) webView.getEngine().executeScript("window");
                     window.setMember("javaConnector", controller);
                     webView.getEngine().executeScript(
-                            "window.bridge = { postMessage: function(msg) { javaConnector.handleMessage(msg); } };");
+                            "if (window.bridge) { console.log('Bridge already exists'); } " +
+                                    "else { window.bridge = { postMessage: function(msg) { javaConnector.handleMessage(msg); } }; "
+                                    +
+                                    "console.log('Bridge created successfully'); }");
                     System.out.println("✅ JavaFX bridge setup complete");
 
                     // If we're on the meals page, load the meals
                     if (location.endsWith("meals.html")) {
                         System.out.println("📋 On meals page, loading meals...");
-                        controller.showAllMealsPage();
+                        controller.loadMealsAndSendInitialData();
                     }
                 } catch (Exception e) {
                     System.err.println("❌ Error setting up JavaFX bridge: " + e.getMessage());

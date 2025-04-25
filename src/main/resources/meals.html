@@ -24,24 +24,48 @@
 </head>
 <body class="meals-page">
     <div class="top-banner">
-        <button class="nav-btn" onclick="goBack()">Back to Form</button>
-        <div class="days-selector">
-            <button class="day-btn">MO</button>
-            <button class="day-btn">TU</button>
-            <button class="day-btn">WE</button>
-            <button class="day-btn">TH</button>
-            <button class="day-btn">FR</button>
-            <button class="day-btn">SA</button>
-            <button class="day-btn">SU</button>
+        <button class="nav-btn" onclick="goBack()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="back-icon">
+                <path d="M19 12H5"></path>
+                <path d="M12 19l-7-7 7-7"></path>
+            </svg>
+            Back
+        </button>
+        <div class="nutrition-stats">
+            <div class="total-calories">
+                <span class="calorie-value">2000</span>
+                <span class="2000 calorie-label">kcal Remaining</span>
+            </div>
+            <div class="macro-pill protein">
+                <span class="macro-label">Protein:</span>
+                <span class="macro-value">0g/120g</span>
+            </div>
+            <div class="macro-pill carbs">
+                <span class="macro-label">Carbs:</span>
+                <span class="macro-value">0g/250g</span>
+            </div>
+            <div class="macro-pill fat">
+                <span class="macro-label">Fat:</span>
+                <span class="macro-value">0g/65g</span>
+            </div>
         </div>
-        <div class="total-calories">
-            <span class="calorie-label">Daily Target:</span>
-            <span class="calorie-value">2000 kcal</span>
-        </div>
-        <button class="nav-btn">Finish Plan</button>
+        <button class="nav-btn finish-btn">Finish Plan</button>
     </div>
 
-    <h1 class="main-title">Your Diet Plan</h1>
+    <div class="day-selector-vertical">
+        <button class="day-btn" data-day="MO">MO</button>
+        <button class="day-btn" data-day="TU">TU</button>
+        <button class="day-btn" data-day="WE">WE</button>
+        <button class="day-btn" data-day="TH">TH</button>
+        <button class="day-btn" data-day="FR">FR</button>
+        <button class="day-btn" data-day="SA">SA</button>
+        <button class="day-btn" data-day="SU">SU</button>
+    </div>
+
+    <div class="title-section">
+        <h1 class="main-title">Personal Meal Planner</h1>
+        <p class="subtitle">Customize your weekly nutrition plan with our handpicked selection of healthy meals</p>
+    </div>
     
     <div class="search-wrapper">
         <div class="search-container">
@@ -51,6 +75,12 @@
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
         </div>
+        <button class="filters-btn">
+            <svg class="filter-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+            Filters
+        </button>
     </div>
     
     <div class="meal-container" id="mealContainer">
@@ -61,176 +91,656 @@
     
     <script>
         let bridge = null;
-        let isDebugMode = false;
+        let isDebugMode = false; // Set debug mode to false by default
+        let currentDay = "MO"; // Track the currently selected day
+        let allMealsData = []; // Store all meal data locally
+        let localSelections = {}; // For development mode - store selections locally
+        let dailyCalories = {}; // Track remaining calories for each day
+        let dailyProtein = {}; // Track protein totals by day
+        let dailyCarbs = {}; // Track carbs totals by day
+        let dailyFat = {}; // Track fat totals by day
+        
+        // Default nutrition targets
+        const DEFAULT_DAILY_CALORIES = 2000; // Default daily calorie target
+        const DEFAULT_PROTEIN_GOAL = 120; // Default daily protein goal in grams
+        const DEFAULT_CARBS_GOAL = 250; // Default daily carbs goal in grams
+        const DEFAULT_FAT_GOAL = 65; // Default daily fat goal in grams
+
+        // Initialize local selections for each day
+        function initLocalSelections() {
+            const days = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+            days.forEach(day => {
+                if (!localSelections[day]) {
+                    localSelections[day] = [];
+                }
+                // Initialize nutrition values for each day
+                if (dailyCalories[day] === undefined) {
+                    dailyCalories[day] = DEFAULT_DAILY_CALORIES;
+                }
+                if (dailyProtein[day] === undefined) {
+                    dailyProtein[day] = 0;
+                }
+                if (dailyCarbs[day] === undefined) {
+                    dailyCarbs[day] = 0;
+                }
+                if (dailyFat[day] === undefined) {
+                    dailyFat[day] = 0;
+                }
+            });
+        }
 
         function showDebug(message) {
-            if (!isDebugMode) return;
-            const debugPanel = document.getElementById('debugPanel');
-            const msgElement = document.createElement('div');
-            msgElement.className = 'debug-message';
-            msgElement.textContent = `[DEBUG] ${message}`;
-            debugPanel.appendChild(msgElement);
-            debugPanel.scrollTop = debugPanel.scrollHeight;
+            // Always log to console, regardless of debug mode
+            console.log(`[DEBUG] ${message}`);
+            
+            // No longer showing debug in UI panel
         }
 
         function showError(message) {
-            const debugPanel = document.getElementById('debugPanel');
-            debugPanel.style.display = 'block';
-            const msgElement = document.createElement('div');
-            msgElement.className = 'error-message';
-            msgElement.textContent = `[ERROR] ${message}`;
-            debugPanel.appendChild(msgElement);
-            debugPanel.scrollTop = debugPanel.scrollHeight;
+            // Log errors to console
+            console.error(`[ERROR] ${message}`);
+            
+            // No longer showing errors in UI panel
         }
 
         function goBack() {
             window.location.href = 'index.html';
         }
-        
-        function createMealCards(meals) {
-            showDebug('Creating meal cards...');
+
+        // Function called by Java to initialize the page
+        function setupPage(mealsData, initialDay, initialSelectedIds) {
+            showDebug(`Setting up page for day: ${initialDay}`);
+            showDebug(`Received mealsData type: ${typeof mealsData}`);
+            showDebug(`Received initialSelectedIds type: ${typeof initialSelectedIds}`);
+            // Log a sample if it's an array
+            if (Array.isArray(mealsData) && mealsData.length > 0) {
+                showDebug(`First meal sample: ${JSON.stringify(mealsData[0])}`);
+            }
+            if (Array.isArray(initialSelectedIds)) {
+                showDebug(`Initial selected IDs: ${JSON.stringify(initialSelectedIds)}`);
+            }
+
             try {
-                if (!Array.isArray(meals)) {
-                    if (typeof meals === 'string') {
-                        try {
-                            meals = JSON.parse(meals);
-                            showDebug('Successfully parsed meals string to JSON');
-                        } catch (e) {
-                            showError('Failed to parse meals string: ' + e.message);
-                            return;
-                        }
-                    } else {
-                        showError('Invalid meals data type: ' + typeof meals);
-                        return;
-                    }
-                }
-
-                const container = document.getElementById('mealContainer');
-                if (!container) {
-                    showError('Meal container element not found!');
-                    return;
-                }
-
-                showDebug(`Processing ${meals.length} meals`);
-                container.innerHTML = '';
-                
-                meals.forEach((meal, index) => {
+                // Ensure mealsData is an array, attempt parse if it's a string
+                if (typeof mealsData === 'string') {
                     try {
-                        const mealCard = document.createElement('div');
-                        mealCard.className = 'meal-card';
-                        
-                        // Validate required meal properties
-                        if (!meal.name) {
-                            showError(`Meal at index ${index} is missing name property`);
-                            return;
-                        }
-
-                        const hasValidMacros = 
-                            typeof meal.protein === 'number' && 
-                            typeof meal.carbs === 'number' && 
-                            typeof meal.fat === 'number';
-                        
-                        mealCard.innerHTML = `
-                            <h3>${meal.name}</h3>
-                            <img class='meal-image' src='${meal.imageUrl}' onerror="this.src='https://via.placeholder.com/200x150?text=No+Image'">
-                            <div class="stats-row">
-                                <span class="stats-text">${meal.calories ? `${Math.round(meal.calories)} kcal` : 'Calories N/A'}</span>
-                                <span class="stats-text">${meal.servingWeight ? `${meal.servingWeight}g` : ''}</span>
-                            </div>
-                            <p class="nutrients">
-                                ${hasValidMacros ? 
-                                    `Protein: ${meal.protein.toFixed(1)}g | Carbs: ${meal.carbs.toFixed(1)}g | Fat: ${meal.fat.toFixed(1)}g` : 
-                                    'Nutrition data unavailable'}
-                            </p>
-                            <div class="tags">
-                                ${meal.vegan ? '<div class="tag vegan-tag">Vegan</div>' : ''}
-                                ${meal.vegetarian ? '<div class="tag vegetarian-tag">Vegetarian</div>' : ''}
-                                ${meal.glutenFree ? '<div class="tag gf-tag">Gluten Free</div>' : ''}
-                                ${meal.dairyFree ? '<div class="tag df-tag">Dairy Free</div>' : ''}
-                                ${meal.veryHealthy ? '<div class="tag healthy-tag">Healthy</div>' : ''}
-                                ${meal.cheap ? '<div class="tag cheap-tag">Budget</div>' : ''}
-                                ${meal.sustainable ? '<div class="tag eco-tag">Eco</div>' : ''}
-                                ${meal.lowFodmap ? '<div class="tag fodmap-tag">Low FODMAP</div>' : ''}
-                            </div>
-                        `;
-                        
-                        container.appendChild(mealCard);
-                        showDebug(`Successfully created card for meal: ${meal.name}`);
+                        allMealsData = JSON.parse(mealsData);
+                        showDebug('Parsed mealsData string to array.');
                     } catch (e) {
-                        showError(`Error creating meal card at index ${index}: ${e.message}`);
+                        showError(`Failed to parse mealsData string: ${e.message}`);
+                        allMealsData = []; // Use empty array on failure
                     }
-                });
-                showDebug('Finished creating all meal cards');
+                } else if (Array.isArray(mealsData)) {
+                    allMealsData = mealsData;
+                    showDebug('Using mealsData directly as array.');
+                } else {
+                    showError(`Invalid mealsData type received: ${typeof mealsData}`);
+                    allMealsData = []; // Use empty array
+                }
+
+                // Ensure initialSelectedIds is an array
+                let selectedIdsArray;
+                if (typeof initialSelectedIds === 'string') {
+                    try {
+                        selectedIdsArray = JSON.parse(initialSelectedIds);
+                        showDebug('Parsed initialSelectedIds string to array.');
+                    } catch (e) {
+                        showError(`Failed to parse initialSelectedIds string: ${e.message}`);
+                        selectedIdsArray = []; // Use empty array on failure
+                    }
+                } else if (Array.isArray(initialSelectedIds)) {
+                    selectedIdsArray = initialSelectedIds;
+                    showDebug('Using initialSelectedIds directly as array.');
+                } else {
+                    showError(`Invalid initialSelectedIds type received: ${typeof initialSelectedIds}`);
+                    selectedIdsArray = []; // Use empty array
+                }
+
+                currentDay = initialDay;
+                
+                // Store the initial selections for this day
+                localSelections[currentDay] = selectedIdsArray;
+
+                createMealCards(allMealsData); // Create all cards first
+                updateSelectedCards(selectedIdsArray); // Then apply selection state
+                updateSelectedDayButton(currentDay); // Highlight the initial day button
+                updateDailyCaloriesDisplay(); // Update the calories based on initial selections
+
+                showDebug(`Page setup complete. ${allMealsData.length} meals loaded. ${selectedIdsArray.length} selected for ${initialDay}.`);
             } catch (e) {
-                showError('Error in createMealCards: ' + e.message);
+                showError(`Error during setupPage: ${e.message}`);
+                console.error(e); // Log full error object
+            }
+        }
+        
+        // Update meal cards with filtered results from search
+        function updateMealCards(mealsData, selectedIds) {
+            showDebug(`Updating meal cards with filtered data. Count: ${mealsData.length}`);
+            try {
+                // Store the filtered meals
+                allMealsData = mealsData;
+                
+                // Recreate the cards with the filtered data
+                createMealCards(mealsData);
+                
+                // Update the selection state
+                updateSelectedCards(selectedIds);
+                
+                showDebug(`Meal cards updated successfully`);
+            } catch (e) {
+                showError(`Error updating meal cards: ${e.message}`);
+                console.error(e);
             }
         }
 
-        // Add scroll behavior for search bar
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchContainer = document.querySelector('.search-container');
-            let lastScroll = 0;
-
-            window.addEventListener('scroll', () => {
-                const currentScroll = window.pageYOffset;
-                if (currentScroll > 150) {
-                    searchContainer.classList.add('fade');
+        // Function called by Java to update card selections when day changes
+        function updateSelectedCards(selectedIds) {
+            showDebug(`Updating selected cards for day ${currentDay}. IDs: ${JSON.stringify(selectedIds)}`);
+            const mealCards = document.querySelectorAll('.meal-card');
+            mealCards.forEach(card => {
+                const mealId = parseInt(card.dataset.mealId, 10);
+                if (selectedIds.includes(mealId)) {
+                    card.classList.add('selected');
                 } else {
-                    searchContainer.classList.remove('fade');
+                    card.classList.remove('selected');
                 }
-                lastScroll = currentScroll;
             });
+            showDebug('Card selection update finished.');
+        }
 
-            // Initialize bridge
-            initializeBridge();
-        });
+        // Function to update which day button is highlighted
+        function updateSelectedDayButton(day) {
+            const dayBtns = document.querySelectorAll('.day-btn');
+            dayBtns.forEach(btn => {
+                if (btn.dataset.day === day) {
+                    btn.classList.add('selected');
+                } else {
+                    btn.classList.remove('selected');
+                }
+            });
+        }
+
+        function createMealCards(meals) {
+            showDebug(`Creating meal cards. Input type: ${typeof meals}, Is array: ${Array.isArray(meals)}`);
+            const container = document.getElementById('mealContainer');
+            if (!container) {
+                showError('Meal container element not found!');
+                return; // Stop if container doesn't exist
+            }
+            container.innerHTML = ''; // Clear previous cards
+            showDebug(`Container found and cleared. Processing ${meals ? meals.length : 0} meals.`);
+
+            if (!Array.isArray(meals)) {
+                 showError(`createMealCards received non-array input: ${typeof meals}`);
+                 return; // Stop if not an array
+            }
+
+            // Let's add debug info about the first meal to see its structure
+            if (meals.length > 0) {
+                const firstMeal = meals[0];
+                showDebug(`DEBUG - First meal structure: ${JSON.stringify(firstMeal)}`);
+                showDebug(`DEBUG - First meal keys: ${Object.keys(firstMeal).join(', ')}`);
+            }
+
+            meals.forEach((meal, index) => {
+                try {
+                    const mealCard = document.createElement('div');
+                    mealCard.className = 'meal-card';
+                    mealCard.dataset.mealId = meal.id; // Add data-meal-id attribute
+                    
+                    // Validate required meal properties
+                    if (!meal.name || meal.id === undefined) {
+                        showError(`Meal at index ${index} is missing name or id property - skipping`);
+                        showDebug(`Problem meal: ${JSON.stringify(meal)}`);
+                        return; // Skip this card
+                    }
+
+                    // Check if properties exist and use the correct property names
+                    const hasValidMacros = 
+                        meal.protein !== null && meal.protein !== undefined && 
+                        meal.carbs !== null && meal.carbs !== undefined && 
+                        meal.fat !== null && meal.fat !== undefined;
+                    
+                    mealCard.innerHTML = `
+                        <h3>${meal.name}</h3>
+                        <img class='meal-image' src='${meal.imageUrl || 'https://via.placeholder.com/200x150?text=No+Image'}' onerror="this.onerror=null; this.src='https://via.placeholder.com/200x150?text=No+Image';">
+                        <div class="stats-row">
+                            <span class="stats-text">${meal.calories !== null && meal.calories !== undefined ? `${Math.round(meal.calories)} kcal` : 'Calories N/A'}</span>
+                            <span class="stats-text">${meal.servingWeight !== null && meal.servingWeight !== undefined ? `${meal.servingWeight}g` : ''}</span>
+                        </div>
+                        <p class="nutrients ${hasValidMacros ? '' : 'unavailable'}">
+                            ${hasValidMacros ? 
+                                `Protein: ${meal.protein.toFixed(1)}g | Carbs: ${meal.carbs.toFixed(1)}g | Fat: ${meal.fat.toFixed(1)}g` : 
+                                'Nutrition data unavailable'}
+                        </p>
+                        <div class="tags">
+                            ${meal.vegan ? '<div class="tag vegan-tag">Vegan</div>' : ''}
+                            ${meal.vegetarian ? '<div class="tag vegetarian-tag">Vegetarian</div>' : ''}
+                            ${meal.glutenFree ? '<div class="tag gf-tag">Gluten Free</div>' : ''}
+                            ${meal.dairyFree ? '<div class="tag df-tag">Dairy Free</div>' : ''}
+                            ${meal.veryHealthy ? '<div class="tag healthy-tag">Healthy</div>' : ''}
+                            ${meal.cheap ? '<div class="tag cheap-tag">Budget</div>' : ''}
+                            ${meal.sustainable ? '<div class="tag eco-tag">Eco</div>' : ''}
+                            ${meal.lowFodmap ? '<div class="tag fodmap-tag">Low FODMAP</div>' : ''}
+                        </div>
+                    `;
+                    
+                    container.appendChild(mealCard);
+                    showDebug(`Created card for meal: ${meal.name} (ID: ${meal.id})`);
+                } catch (e) {
+                    showError(`Error creating meal card at index ${index}: ${e.message}`);
+                    if (meal) {
+                        showDebug(`Problem meal data: ${JSON.stringify(meal)}`);
+                    }
+                }
+            });
+            showDebug(`Finished creating all meal cards: ${meals.length} cards created`);
+        }
+
+        // Calculate and update remaining calories for the day with improved formatting
+        function updateDailyCaloriesDisplay() {
+            // Calculate total calories from selected meals for current day
+            const selectedMeals = localSelections[currentDay] || [];
+            let totalSelectedCalories = 0;
+            
+            // Add up calories from all selected meals
+            selectedMeals.forEach(mealId => {
+                const meal = allMealsData.find(m => m.id === mealId);
+                if (meal && meal.calories) {
+                    totalSelectedCalories += meal.calories;
+                }
+            });
+            
+            // Calculate remaining calories
+            const remainingCalories = DEFAULT_DAILY_CALORIES - totalSelectedCalories;
+            
+            // Store in dailyCalories object
+            dailyCalories[currentDay] = remainingCalories;
+            
+            // Update the display with appropriate formatting and color
+            const calorieValue = document.querySelector('.calorie-value');
+            const calorieLabel = document.querySelector('.calorie-label');
+            
+            if (calorieValue && calorieLabel) {
+                // Remove any previous color classes
+                calorieValue.classList.remove('over', 'warning');
+                
+                // Update the value and label separately
+                if (remainingCalories < 0) {
+                    // Over budget (negative remaining)
+                    calorieValue.textContent = Math.abs(Math.round(remainingCalories));
+                    calorieLabel.textContent = 'kcal Over';
+                    calorieValue.classList.add('over');
+                } else {
+                    // Within or under budget
+                    calorieValue.textContent = Math.round(remainingCalories);
+                    calorieLabel.textContent = 'kcal Remaining';
+                    
+                    // Add warning class if calories are low
+                    if (remainingCalories <= 100) {
+                        calorieValue.classList.add('warning');
+                    }
+                }
+            }
+
+            console.log(`Updated calories for ${currentDay}: Total selected: ${totalSelectedCalories}, Remaining: ${remainingCalories}`);
+        }
+
+        // Update all macro nutrient displays (protein, carbs, fat)
+        function updateMacroNutrientDisplays() {
+            // Calculate totals from selected meals for current day
+            const selectedMeals = localSelections[currentDay] || [];
+            let totalProtein = 0;
+            let totalCarbs = 0;
+            let totalFat = 0;
+            
+            // Add up macros from all selected meals
+            selectedMeals.forEach(mealId => {
+                const meal = allMealsData.find(m => m.id === mealId);
+                if (meal) {
+                    if (meal.protein) totalProtein += meal.protein;
+                    if (meal.carbs) totalCarbs += meal.carbs;
+                    if (meal.fat) totalFat += meal.fat;
+                }
+            });
+            
+            // Store totals in daily tracking objects
+            dailyProtein[currentDay] = totalProtein;
+            dailyCarbs[currentDay] = totalCarbs;
+            dailyFat[currentDay] = totalFat;
+            
+            // Update protein display
+            const proteinDisplay = document.querySelector('.macro-pill.protein .macro-value');
+            if (proteinDisplay) {
+                proteinDisplay.classList.remove('met', 'not-met');
+                proteinDisplay.textContent = `${Math.round(totalProtein)}g/${DEFAULT_PROTEIN_GOAL}g`;
+                
+                if (totalProtein >= DEFAULT_PROTEIN_GOAL) {
+                    proteinDisplay.classList.add('met');
+                } else {
+                    proteinDisplay.classList.add('not-met');
+                }
+            }
+            
+            // Update carbs display
+            const carbsDisplay = document.querySelector('.macro-pill.carbs .macro-value');
+            if (carbsDisplay) {
+                carbsDisplay.classList.remove('met', 'not-met');
+                carbsDisplay.textContent = `${Math.round(totalCarbs)}g/${DEFAULT_CARBS_GOAL}g`;
+                
+                if (totalCarbs >= DEFAULT_CARBS_GOAL) {
+                    carbsDisplay.classList.add('met');
+                } else {
+                    carbsDisplay.classList.add('not-met');
+                }
+            }
+            
+            // Update fat display
+            const fatDisplay = document.querySelector('.macro-pill.fat .macro-value');
+            if (fatDisplay) {
+                fatDisplay.classList.remove('met', 'not-met');
+                fatDisplay.textContent = `${Math.round(totalFat)}g/${DEFAULT_FAT_GOAL}g`;
+                
+                if (totalFat >= DEFAULT_FAT_GOAL) {
+                    fatDisplay.classList.add('met');
+                } else {
+                    fatDisplay.classList.add('not-met');
+                }
+            }
+            
+            console.log(`Updated macros for ${currentDay}: Protein: ${totalProtein}g, Carbs: ${totalCarbs}g, Fat: ${totalFat}g`);
+        }
+
+        // Function to send message to Java backend
+        function sendMessageToJava(messageObject) {
+            if (bridge) {
+                try {
+                    const messageString = JSON.stringify(messageObject);
+                    showDebug(`Sending to Java: ${messageString}`);
+                    bridge.postMessage(messageString);
+                } catch (e) {
+                    showError(`Error sending message to Java: ${e.message}`);
+                }
+            } else {
+                showDebug(`Bridge not available. Using local storage. Would send: ${JSON.stringify(messageObject)}`);
+                
+                // Development mode - simulate backend with local storage
+                if (messageObject.action === 'toggleMealSelection') {
+                    // Handle toggling meal selection locally
+                    const { day, mealId } = messageObject;
+                    const daySelections = localSelections[day] || [];
+                    const index = daySelections.indexOf(mealId);
+                    
+                    if (index === -1) {
+                        // Add the meal to selections for this day
+                        daySelections.push(mealId);
+                        showDebug(`Dev mode: Added meal ${mealId} to day ${day}`);
+                    } else {
+                        // Remove the meal from selections for this day
+                        daySelections.splice(index, 1);
+                        showDebug(`Dev mode: Removed meal ${mealId} from day ${day}`);
+                    }
+                    
+                    localSelections[day] = daySelections;
+                    showDebug(`Dev mode: Day ${day} now has selections: ${JSON.stringify(localSelections[day])}`);
+                    
+                    // Update nutrition displays after toggling meal
+                    updateDailyCaloriesDisplay();
+                    updateMacroNutrientDisplays();
+                    
+                } else if (messageObject.action === 'selectDay') {
+                    // When day changes, update UI with the current day's selections
+                    const { day } = messageObject;
+                    const selections = localSelections[day] || [];
+                    setTimeout(() => {
+                        updateSelectedCards(selections);
+                        updateDailyCaloriesDisplay(); // Update calorie display when switching days
+                        updateMacroNutrientDisplays(); // Update macro displays when switching days
+                    }, 50);
+                    showDebug(`Dev mode: Switching to day ${day} with selections: ${JSON.stringify(selections)}`);
+                }
+            }
+        }
+
+        // Request initial data when the bridge is ready
+        function requestInitialData() {
+            showDebug('Requesting initial data from Java...');
+            sendMessageToJava({ action: 'getInitialData' });
+        }
 
         // Bridge initialization
         function initializeBridge() {
             showDebug('Initializing bridge...');
             try {
                 if (window.bridge) {
-                    showDebug('JavaFX bridge initialized');
+                    showDebug('JavaFX bridge initialized successfully');
                     bridge = window.bridge;
-                    // Test the bridge
-                    bridge.postMessage('Bridge test from meals.html');
+                    // Request data once bridge is confirmed
+                    requestInitialData();
                 } else {
+                    showDebug('WARNING: Bridge not available - running in development mode');
                     console.log('Running in development mode - bridge not available');
+                    
+                    // For development testing only - make at least one day selected
+                    setTimeout(() => {
+                        if (document.querySelector('.day-btn.selected') === null) {
+                            updateSelectedDayButton('MO');
+                            showDebug('No day selected, defaulting to Monday in development mode');
+                        }
+                    }, 500);
                 }
             } catch (e) {
                 showError('Bridge initialization failed: ' + e.message);
             }
         }
 
-        // Toggle debug mode with keyboard shortcut (Ctrl+D)
+        // Toggle debug mode with keyboard shortcut (Option+D for Mac or Ctrl+D for others)
         document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.key === 'd') {
+            // Use Option+D (Alt key) for Mac and Ctrl+D for other platforms
+            if ((e.altKey && e.key === 'd') || (e.ctrlKey && e.key === 'd')) {
                 isDebugMode = !isDebugMode;
                 const debugPanel = document.getElementById('debugPanel');
-                debugPanel.style.display = isDebugMode ? 'block' : 'none';
-                showDebug('Debug mode ' + (isDebugMode ? 'enabled' : 'disabled'));
+                if (debugPanel) {
+                    debugPanel.style.display = isDebugMode ? 'block' : 'none';
+                    if (isDebugMode) {
+                        showDebug('Debug mode enabled');
+                    }
+                }
                 e.preventDefault();
             }
         });
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Add click handlers for days and meal cards
+            // Debug mode is disabled by default
+            isDebugMode = false;
+            const debugPanel = document.getElementById('debugPanel');
+            if (debugPanel) {
+                debugPanel.style.display = 'none';
+                // Debug message won't show until debug mode is enabled
+            }
+
+            // Initialize local selections storage
+            initLocalSelections();
+
+            // Initialize bridge first
+            initializeBridge();
+            
+            // Add search input handler
+            const searchInput = document.querySelector('.search-container input');
+            if (searchInput) {
+                let searchTimeout;
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        const query = searchInput.value.trim();
+                        if (query.length >= 2) {
+                            // Search with at least 2 characters
+                            sendMessageToJava({ 
+                                action: 'searchMeals', 
+                                query: query 
+                            });
+                        } else if (query === '') {
+                            // If search cleared, show all meals
+                            sendMessageToJava({ action: 'getInitialData' });
+                        }
+                    }, 300); // Debounce for 300ms
+                });
+            }
+            
+            // Add click handlers for days
             const dayBtns = document.querySelectorAll('.day-btn');
             dayBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
-                    dayBtns.forEach(b => b.classList.remove('selected'));
-                    btn.classList.add('selected');
+                    const selectedDay = btn.dataset.day;
+                    if (selectedDay === currentDay) return; // Do nothing if clicking the already selected day
+
+                    currentDay = selectedDay;
+                    updateSelectedDayButton(currentDay); // Update button UI immediately
+                    showDebug(`Day button clicked: ${currentDay}`);
+                    // Tell Java the day has changed
+                    sendMessageToJava({ action: 'selectDay', day: currentDay });
+                    // Java will call back updateSelectedCards
                 });
             });
 
-            // Add click handler for meal cards (will be applied to new cards)
-            document.addEventListener('click', (e) => {
-                if (e.target.closest('.meal-card')) {
+            // Add click handler for meal cards using event delegation
+            const mealContainer = document.getElementById('mealContainer');
+            if (mealContainer) {
+                mealContainer.addEventListener('click', (e) => {
                     const card = e.target.closest('.meal-card');
-                    card.classList.toggle('selected');
-                }
-            });
+                    if (card) {
+                        const mealId = parseInt(card.dataset.mealId, 10);
+                        if (!isNaN(mealId)) {
+                            // Toggle visual state immediately
+                            card.classList.toggle('selected');
+                            showDebug(`Meal card clicked: ID ${mealId}, Day: ${currentDay}`);
+                            // Tell Java about the toggle
+                            sendMessageToJava({ action: 'toggleMealSelection', day: currentDay, mealId: mealId });
+                        } else {
+                            showError('Clicked card is missing a valid meal ID.');
+                        }
+                    }
+                });
+            } else {
+                showError('Meal container not found for event listener setup.');
+            }
         });
+
+        function toggleDebugPanel() {
+            const debugPanel = document.getElementById('debugPanel');
+            if (debugPanel) {
+                const isCurrentlyVisible = debugPanel.style.display === 'block';
+                debugPanel.style.display = isCurrentlyVisible ? 'none' : 'block';
+                showDebug(`Debug panel ${isCurrentlyVisible ? 'hidden' : 'shown'}.`);
+            }
+        }
+
+        // Function called by Java when it provides pre-generated HTML
+        function setupPageWithHtml(initialDay, initialSelectedIds) {
+            showDebug(`Setting up page with pre-generated HTML for day: ${initialDay}`);
+            
+            try {
+                // Ensure initialSelectedIds is an array
+                let selectedIdsArray;
+                if (typeof initialSelectedIds === 'string') {
+                    try {
+                        selectedIdsArray = JSON.parse(initialSelectedIds);
+                        showDebug('Parsed initialSelectedIds string to array.');
+                    } catch (e) {
+                        showError(`Failed to parse initialSelectedIds string: ${e.message}`);
+                        selectedIdsArray = []; // Use empty array on failure
+                    }
+                } else if (Array.isArray(initialSelectedIds)) {
+                    selectedIdsArray = initialSelectedIds;
+                    showDebug('Using initialSelectedIds directly as array.');
+                } else {
+                    showError(`Invalid initialSelectedIds type received: ${typeof initialSelectedIds}`);
+                    selectedIdsArray = []; // Use empty array
+                }
+
+                currentDay = initialDay;
+                
+                // Store the initial selections for this day
+                localSelections[currentDay] = selectedIdsArray;
+
+                // Cards are already created by Java's MealCardGenerator
+                updateSelectedCards(selectedIdsArray); // Apply selection state
+                updateSelectedDayButton(currentDay); // Highlight the initial day button
+                
+                // Since we may not have loaded meal data yet, get it from the DOM
+                extractMealDataFromDOM();
+                
+                // Update nutrition displays
+                updateDailyCaloriesDisplay(); 
+                updateMacroNutrientDisplays();
+
+                showDebug(`Page setup complete for day: ${initialDay}`);
+            } catch (e) {
+                showError(`Error during setupPageWithHtml: ${e.message}`);
+                console.error(e); // Log full error object
+            }
+        }
+        
+        // Extract meal data from DOM (used when HTML is generated by Java)
+        function extractMealDataFromDOM() {
+            showDebug('Extracting meal data from pre-generated DOM elements');
+            try {
+                allMealsData = [];
+                const mealCards = document.querySelectorAll('.meal-card');
+                
+                mealCards.forEach(card => {
+                    const mealId = parseInt(card.dataset.mealId, 10);
+                    const nameElement = card.querySelector('h3');
+                    const caloriesElement = card.querySelector('.stats-row .stats-text:first-child');
+                    const nutrientsElement = card.querySelector('.nutrients');
+                    
+                    if (mealId && nameElement) {
+                        // Basic meal data
+                        const meal = {
+                            id: mealId,
+                            name: nameElement.textContent
+                        };
+                        
+                        // Extract calories
+                        if (caloriesElement && caloriesElement.textContent.includes('kcal')) {
+                            const caloriesText = caloriesElement.textContent.trim();
+                            const caloriesMatch = caloriesText.match(/(\d+)/);
+                            if (caloriesMatch) {
+                                meal.calories = parseInt(caloriesMatch[1], 10);
+                            }
+                        }
+                        
+                        // Extract macros if available
+                        if (nutrientsElement && !nutrientsElement.classList.contains('unavailable')) {
+                            const nutrientsText = nutrientsElement.textContent;
+                            
+                            const proteinMatch = nutrientsText.match(/Protein:\s*([\d.]+)g/);
+                            if (proteinMatch) {
+                                meal.protein = parseFloat(proteinMatch[1]);
+                            }
+                            
+                            const carbsMatch = nutrientsText.match(/Carbs:\s*([\d.]+)g/);
+                            if (carbsMatch) {
+                                meal.carbs = parseFloat(carbsMatch[1]);
+                            }
+                            
+                            const fatMatch = nutrientsText.match(/Fat:\s*([\d.]+)g/);
+                            if (fatMatch) {
+                                meal.fat = parseFloat(fatMatch[1]);
+                            }
+                        }
+                        
+                        // Add to our data array
+                        allMealsData.push(meal);
+                    }
+                });
+                
+                showDebug(`Extracted data for ${allMealsData.length} meals from DOM`);
+            } catch (e) {
+                showError(`Failed to extract meal data from DOM: ${e.message}`);
+                console.error(e);
+            }
+        }
     </script>
 </body>
-</html> 
+</html>

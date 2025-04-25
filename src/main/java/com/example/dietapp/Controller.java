@@ -1,38 +1,219 @@
 package com.example.dietapp;
 
+import com.example.dietapp.model.DietPlan;
 import com.example.dietapp.model.Meal;
+import com.example.dietapp.model.NutritionCalculator;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import javafx.application.Platform;
 import javafx.scene.web.WebView;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.File;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Controller {
     private final WebView webView;
     private static final String DB_URL = "jdbc:sqlite:mealsdb.sqlite";
+    private final DietPlan dietPlan;
+    private String currentDay = "MO"; // Default to Monday
+    private List<Meal> allMealsCache; // Cache loaded meals
+
+    // Use the NutritionCalculator for all nutrition calculations
+    private final NutritionCalculator nutritionCalculator;
+
+    // Add MealSearchService for handling search and filter operations
+    private final MealSearchService mealSearchService;
+
+    // Store active filters
+    private boolean filterVegan = false;
+    private boolean filterVegetarian = false;
+    private boolean filterGlutenFree = false;
+    private boolean filterDairyFree = false;
+    private double filterMaxCalories = 0; // 0 means no limit
+    private double filterMinProtein = 0; // 0 means no minimum
+    private boolean filterHasValidNutrition = false;
+    private String currentSearchQuery = "";
 
     public Controller(WebView webView) {
         this.webView = webView;
+        this.dietPlan = new DietPlan(); // Initialize the diet plan
+        this.nutritionCalculator = new NutritionCalculator(); // Initialize our nutrition calculator
+        this.mealSearchService = new MealSearchService(); // Initialize the meal search service
     }
 
     public void handleMessage(String message) {
         System.out.println("📨 Received message from JavaScript: " + message);
-        // Handle different message types here
+        try {
+            JsonObject jsonObject = JsonParser.parseString(message).getAsJsonObject();
+            String action = jsonObject.get("action").getAsString();
+
+            switch (action) {
+                case "selectDay":
+                    String day = jsonObject.get("day").getAsString();
+                    selectDay(day);
+                    break;
+                case "toggleMealSelection":
+                    String mealDay = jsonObject.get("day").getAsString();
+                    int mealId = jsonObject.get("mealId").getAsInt();
+                    toggleMealSelection(mealDay, mealId);
+                    break;
+                case "getInitialData":
+                    sendInitialData();
+                    break;
+                case "searchMeals":
+                    if (jsonObject.has("query")) {
+                        String query = jsonObject.get("query").getAsString();
+                        currentSearchQuery = query;
+                        applySearchAndFilters();
+                    }
+                    break;
+                case "applyFilters":
+                    if (jsonObject.has("filters")) {
+                        updateFiltersFromJson(jsonObject.getAsJsonObject("filters"));
+                        applySearchAndFilters();
+                    }
+                    break;
+                case "validateForm":
+                    if (jsonObject.has("formData")) {
+                        JsonObject formData = jsonObject.get("formData").getAsJsonObject();
+                        validateUserForm(formData);
+                    }
+                    break;
+                default:
+                    System.out.println("Unknown action: " + action);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error parsing or handling message: " + message + " | Error: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
-    public void showAllMealsPage() {
+    /**
+     * Update filter values from JSON object
+     */
+    private void updateFiltersFromJson(JsonObject filters) {
+        if (filters.has("vegan")) {
+            filterVegan = filters.get("vegan").getAsBoolean();
+        }
+        if (filters.has("vegetarian")) {
+            filterVegetarian = filters.get("vegetarian").getAsBoolean();
+        }
+        if (filters.has("glutenFree")) {
+            filterGlutenFree = filters.get("glutenFree").getAsBoolean();
+        }
+        if (filters.has("dairyFree")) {
+            filterDairyFree = filters.get("dairyFree").getAsBoolean();
+        }
+        if (filters.has("maxCalories")) {
+            filterMaxCalories = filters.get("maxCalories").getAsDouble();
+        }
+        if (filters.has("minProtein")) {
+            filterMinProtein = filters.get("minProtein").getAsDouble();
+        }
+        if (filters.has("hasValidNutrition")) {
+            filterHasValidNutrition = filters.get("hasValidNutrition").getAsBoolean();
+        }
+
+        System.out.println("🔍 Filters updated: " +
+                "Vegan: " + filterVegan +
+                ", Vegetarian: " + filterVegetarian +
+                ", GF: " + filterGlutenFree +
+                ", DF: " + filterDairyFree +
+                ", Max Cal: " + filterMaxCalories +
+                ", Min Protein: " + filterMinProtein +
+                ", Valid Nutrition: " + filterHasValidNutrition);
+    }
+
+    private void selectDay(String day) {
+        this.currentDay = day;
+        System.out.println("🗓️ Day selected: " + day);
+        updateMealCardSelectionUI(day);
+        updateNutritionDisplays(day);
+    }
+
+    private void toggleMealSelection(String day, int mealId) {
+        List<Integer> selectedMeals = dietPlan.getMealsForDay(day);
+        Meal meal = findMealById(mealId);
+
+        if (selectedMeals.contains(mealId)) {
+            dietPlan.removeMealFromDay(day, mealId);
+            System.out.println("➖ Meal removed: ID " + mealId + " from day " + day);
+
+            // Use the NutritionCalculator to remove the meal's nutrition
+            nutritionCalculator.removeMealNutrition(day, meal);
+        } else {
+            dietPlan.addMealToDay(day, mealId);
+            System.out.println("➕ Meal added: ID " + mealId + " to day " + day);
+
+            // Use the NutritionCalculator to add the meal's nutrition
+            nutritionCalculator.addMealNutrition(day, meal);
+        }
+
+        // Update all nutrition displays
+        updateNutritionDisplays(day);
+    }
+
+    private Meal findMealById(int id) {
+        if (allMealsCache != null) {
+            for (Meal meal : allMealsCache) {
+                if (meal.getId() == id) {
+                    return meal;
+                }
+            }
+        }
+        return null;
+    }
+
+    private void updateCalorieDisplay(String day) {
+        // Get formatted calorie information from our nutrition calculator
+        String[] calorieInfo = nutritionCalculator.formatCalorieDisplay(day);
+        String displayValue = calorieInfo[0];
+        String displayLabel = calorieInfo[1];
+        String cssClass = calorieInfo[2];
+
+        // Send updated calories with formatting to JavaScript
+        String script = String.format(
+                "const valueDisplay = document.querySelector('.calorie-value');" +
+                        "const labelDisplay = document.querySelector('.calorie-label');" +
+                        "if (valueDisplay && labelDisplay) {" +
+                        "  valueDisplay.textContent = '%s';" +
+                        "  labelDisplay.textContent = '%s';" +
+                        "  valueDisplay.classList.remove('over', 'warning');" +
+                        "  %s" +
+                        "}",
+                displayValue,
+                displayLabel,
+                cssClass.isEmpty() ? "" : "valueDisplay.classList.add('" + cssClass + "');");
+
+        Platform.runLater(() -> {
+            try {
+                webView.getEngine().executeScript(script);
+                System.out.println("🔢 Updated calorie display for day " + day);
+            } catch (Exception e) {
+                System.err.println("❌ Failed to update calorie display: " + e.getMessage());
+            }
+        });
+    }
+
+    // Renamed from showAllMealsPage to loadMealsAndSendInitialData
+    public void loadMealsAndSendInitialData() {
         try {
             System.out.println("🔍 Loading meals from database...");
-            List<Meal> meals = getAllMeals();
-            String mealsJson = new Gson().toJson(meals);
-            System.out.println("📋 Found " + meals.size() + " meals");
+            if (allMealsCache == null) { // Load only if cache is empty
+                allMealsCache = getAllMeals();
+            }
+            System.out.println("📋 Found " + allMealsCache.size() + " meals");
 
-            // Execute the createMealCards function with the meals data
-            String script = String.format("createMealCards(%s);", mealsJson);
-            webView.getEngine().executeScript(script);
-            System.out.println("✅ Meals loaded successfully");
+            // Calculate initial nutrition values using our calculator
+            nutritionCalculator.calculateNutritionForDay(currentDay, dietPlan.getMealsForDay(currentDay),
+                    allMealsCache);
+
+            sendInitialData(); // Send meals and initial day's selections
 
         } catch (SQLException e) {
             System.err.println("❌ Database error: " + e.getMessage());
@@ -41,6 +222,246 @@ public class Controller {
             System.err.println("❌ Unexpected error: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private void sendInitialData() {
+        if (allMealsCache == null) {
+            System.err.println("❌ Meal cache is empty, cannot send initial data.");
+            return;
+        }
+
+        // Generate meal cards HTML in Java instead of JavaScript
+        String mealCardsHtml = MealCardGenerator.generateAllMealCardsHtml(allMealsCache);
+
+        List<Integer> initialSelectedIds = dietPlan.getMealsForDay(currentDay);
+        String initialSelectedIdsJson = new Gson().toJson(initialSelectedIds);
+
+        // Execute setup script with pre-generated HTML
+        String script = String.format(
+                "document.getElementById('mealContainer').innerHTML = `%s`; setupPageWithHtml('%s', %s);",
+                mealCardsHtml.replace("`", "\\`"), // Escape backticks in HTML
+                currentDay,
+                initialSelectedIdsJson);
+
+        Platform.runLater(() -> {
+            try {
+                webView.getEngine().executeScript(script);
+                System.out.println("✅ Initial page data sent successfully for day: " + currentDay);
+
+                // Update nutritional displays
+                updateNutritionDisplays(currentDay);
+            } catch (Exception e) {
+                System.err.println("❌ Failed to execute setup script: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+    }
+
+    // Sends the list of selected meal IDs for the given day to JavaScript
+    private void updateMealCardSelectionUI(String day) {
+        List<Integer> selectedMealIds = dietPlan.getMealsForDay(day);
+        String selectedIdsJson = new Gson().toJson(selectedMealIds);
+        String script = String.format("updateSelectedCards(%s);", selectedIdsJson);
+
+        Platform.runLater(() -> {
+            try {
+                webView.getEngine().executeScript(script);
+                System.out.println("🔄 Updated card selections for day: " + day);
+            } catch (Exception e) {
+                System.err.println("❌ Failed to execute updateSelectedCards script: " + e.getMessage());
+            }
+        });
+    }
+
+    // Update all nutrition displays using the NutritionCalculator
+    private void updateNutritionDisplays(String day) {
+        // First update calories
+        updateCalorieDisplay(day);
+
+        // Then update macronutrients
+        updateMacronutrientDisplays(day);
+    }
+
+    // Update protein, carbs, and fat displays
+    private void updateMacronutrientDisplays(String day) {
+        // Use the NutritionCalculator to get formatted macro displays
+        String[] macroInfo = nutritionCalculator.formatMacronutrientDisplays(day);
+
+        // Extract values from the returned array
+        String proteinDisplay = macroInfo[0];
+        String proteinClass = macroInfo[1];
+        String carbsDisplay = macroInfo[2];
+        String carbsClass = macroInfo[3];
+        String fatDisplay = macroInfo[4];
+        String fatClass = macroInfo[5];
+
+        // Create JavaScript to update all macro displays
+        String script = String.format(
+                "// Update protein display\n" +
+                        "const proteinDisplay = document.querySelector('.macro-pill.protein .macro-value');\n" +
+                        "if (proteinDisplay) {\n" +
+                        "  proteinDisplay.classList.remove('met', 'not-met');\n" +
+                        "  proteinDisplay.textContent = '%s';\n" +
+                        "  proteinDisplay.classList.add('%s');\n" +
+                        "}\n" +
+
+                        "// Update carbs display\n" +
+                        "const carbsDisplay = document.querySelector('.macro-pill.carbs .macro-value');\n" +
+                        "if (carbsDisplay) {\n" +
+                        "  carbsDisplay.classList.remove('met', 'not-met');\n" +
+                        "  carbsDisplay.textContent = '%s';\n" +
+                        "  carbsDisplay.classList.add('%s');\n" +
+                        "}\n" +
+
+                        "// Update fat display\n" +
+                        "const fatDisplay = document.querySelector('.macro-pill.fat .macro-value');\n" +
+                        "if (fatDisplay) {\n" +
+                        "  fatDisplay.classList.remove('met', 'not-met');\n" +
+                        "  fatDisplay.textContent = '%s';\n" +
+                        "  fatDisplay.classList.add('%s');\n" +
+                        "}",
+                proteinDisplay, proteinClass,
+                carbsDisplay, carbsClass,
+                fatDisplay, fatClass);
+
+        Platform.runLater(() -> {
+            try {
+                webView.getEngine().executeScript(script);
+                System.out.println("📊 Updated macronutrient displays for day " + day);
+            } catch (Exception e) {
+                System.err.println("❌ Failed to update macronutrient displays: " + e.getMessage());
+            }
+        });
+    }
+
+    // Apply search and filters then update UI
+    private void applySearchAndFilters() {
+        if (allMealsCache == null) {
+            System.err.println("❌ Meal cache is empty, cannot perform search/filter.");
+            return;
+        }
+
+        // Use MealSearchService to perform search and filtering
+        List<Meal> filteredMeals = mealSearchService.searchAndFilter(
+                allMealsCache,
+                currentSearchQuery,
+                filterVegan,
+                filterVegetarian,
+                filterGlutenFree,
+                filterDairyFree,
+                filterMaxCalories,
+                filterMinProtein,
+                filterHasValidNutrition);
+
+        System.out.println("🔍 Search/filter found " + filteredMeals.size() + " meals");
+
+        // Generate HTML for filtered meals
+        String filteredMealsHtml = MealCardGenerator.generateAllMealCardsHtml(filteredMeals);
+
+        // Create final variables for the lambda
+        final String htmlContent = filteredMealsHtml.replace("`", "\\`"); // Escape backticks
+        final String selectedIdsJson = new Gson().toJson(dietPlan.getMealsForDay(currentDay));
+
+        // Update the UI with filtered results
+        final String script = String.format(
+                "document.getElementById('mealContainer').innerHTML = `%s`; updateSelectedCards(%s);",
+                htmlContent,
+                selectedIdsJson);
+
+        Platform.runLater(() -> {
+            try {
+                webView.getEngine().executeScript(script);
+                System.out.println("✅ Updated UI with filtered meals");
+            } catch (Exception e) {
+                System.err.println("❌ Failed to update meal cards: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+    }
+
+    // Process form validation from index.html
+    private void validateUserForm(JsonObject formData) {
+        // We'll always consider the form valid to allow empty form submission
+        final boolean[] isValid = { true };
+        final String[] errorMessage = { "" };
+
+        try {
+            // Extract form data
+            String fullname = formData.has("fullname") ? formData.get("fullname").getAsString() : "";
+            String email = formData.has("email") ? formData.get("email").getAsString() : "";
+            String weightStr = formData.has("weight") ? formData.get("weight").getAsString() : "";
+            String heightStr = formData.has("height") ? formData.get("height").getAsString() : "";
+            String ageStr = formData.has("age") ? formData.get("age").getAsString() : "";
+            String gender = formData.has("gender") ? formData.get("gender").getAsString() : "";
+
+            // Log the form data but don't validate it
+            System.out.println("📝 Form data received: " +
+                    "Name: " + (fullname.isEmpty() ? "Not provided" : fullname) + ", " +
+                    "Email: " + (email.isEmpty() ? "Not provided" : email) + ", " +
+                    "Weight: " + (weightStr.isEmpty() ? "Not provided" : weightStr) + "kg, " +
+                    "Height: " + (heightStr.isEmpty() ? "Not provided" : heightStr) + "cm, " +
+                    "Age: " + (ageStr.isEmpty() ? "Not provided" : ageStr) + ", " +
+                    "Gender: " + (gender.isEmpty() ? "Not provided" : gender));
+
+            // We're allowing empty form submission, so we don't need validation
+            // You can uncomment this validation if you want to restore it later
+            /*
+             * // Basic validation
+             * if (fullname.isEmpty() || email.isEmpty() || weightStr.isEmpty() ||
+             * heightStr.isEmpty() || ageStr.isEmpty()) {
+             * isValid[0] = false;
+             * errorMessage[0] = "Please fill all required fields correctly.";
+             * } else {
+             * try {
+             * // Parse and validate numeric values
+             * double weight = Double.parseDouble(weightStr);
+             * double height = Double.parseDouble(heightStr);
+             * int age = Integer.parseInt(ageStr);
+             * 
+             * // Validate weight
+             * if (weight < 30 || weight > 200) {
+             * isValid[0] = false;
+             * errorMessage[0] = "Weight must be between 30 and 200 kg.";
+             * }
+             * // Validate height
+             * else if (height < 100 || height > 250) {
+             * isValid[0] = false;
+             * errorMessage[0] = "Height must be between 100 and 250 cm.";
+             * }
+             * // Validate age
+             * else if (age < 5 || age > 100) {
+             * isValid[0] = false;
+             * errorMessage[0] = "Age must be between 5 and 100 years.";
+             * }
+             * 
+             * } catch (NumberFormatException e) {
+             * isValid[0] = false;
+             * errorMessage[0] = "Please enter valid numbers for weight, height, and age.";
+             * }
+             * }
+             */
+        } catch (Exception e) {
+            // Log any errors but still allow the form to be submitted
+            System.err.println("❌ Error processing form data: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        // Send result back to JavaScript - always valid
+        final String safeErrorMessage = errorMessage[0].replace("\"", "\\\"");
+        final String resultJson = String.format("{ \"valid\": %b, \"errorMessage\": \"%s\" }", isValid[0],
+                safeErrorMessage);
+        final String script = String.format("handleFormValidationResult(%s);", resultJson);
+
+        // Execute callback in JavaScript
+        Platform.runLater(() -> {
+            try {
+                webView.getEngine().executeScript(script);
+                System.out.println(
+                        "📝 Form validation result: " + (isValid[0] ? "Valid" : "Invalid - " + errorMessage[0]));
+            } catch (Exception e) {
+                System.err.println("❌ Failed to send form validation result: " + e.getMessage());
+            }
+        });
     }
 
     private List<Meal> getAllMeals() throws SQLException {
