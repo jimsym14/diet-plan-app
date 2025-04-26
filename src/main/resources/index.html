@@ -4,9 +4,8 @@
     <title>Diet Plan App</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
 </head>
-<body>
+<body class="index-page">
 <img src="orange1.png" class="fruit fruit1">
 <img src="apple1.png" class="fruit fruit2">
 <img src="banana1.png" class="fruit fruit3">
@@ -17,9 +16,8 @@
 <img src="banana1.png" class="fruit fruit8">
 
 <div class="container">
-
     <aside class="sidebar">
-    <h2>DIET PLAN</h2>
+        <h2>DIET PLAN</h2>
         <ul>
             <li><span></span> Dashboard</li>
             <li><span></span> Clients</li>
@@ -30,43 +28,134 @@
     </aside>
     <main class="main-content">
         <h1>Enter User Information</h1>
-        <form class="user-form">
-            <label>Full Name <input type="text" /></label>
-            <label>Email <input type="email" /></label>
+        <form class="user-form" id="dietForm" onsubmit="return false;">
+            <label>Full Name <input type="text" id="fullname" required /></label>
+            <label>Email <input type="email" id="email" required /></label>
             <div class="row">
-                <label>Age <input type="number" /></label>
-                <label>Height (cm) <input type="number" /></label>
-                <label>Current Weight (kg) <input type="number" /></label>
+                <label>Age <input type="number" id="age" min="5" max="100" required /></label>
+                <label>Height (cm) <input type="number" id="height" min="100" max="250" required /></label>
+                <label>Current Weight (kg) <input type="number" id="weight" min="30" max="200" required /></label>
             </div>
             <label for="gender">Gender</label>
-    <select id="gender">
-        <option value="male">Male</option>
-        <option value="female">Female</option>
-        <option value="other">Other</option>
-    </select>
-    <button onclick="generatePlan()">Generate Plan</button>
+            <select id="gender">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+            </select>
+            <button type="button" id="generatePlanBtn">Generate Plan</button>
+            <div id="validationError" style="color: red; display: none;"></div>
         </form>
     </main>
 </div>
 
 <script>
-    function generatePlan() {
-        const weight = parseFloat(document.getElementById('weight').value);
-        const height = parseFloat(document.getElementById('height').value);
-        const age = parseInt(document.getElementById('age').value);
-        const gender = document.getElementById('gender').value;
-        if (isNaN(weight) || isNaN(height) || isNaN(age)) {
-            alert('Please fill all fields.');
-            return;
+    let bridge = null;
+
+    // Function to send message to Java backend
+    function sendMessageToJava(messageObject) {
+        if (bridge) {
+            try {
+                const messageString = JSON.stringify(messageObject);
+                console.log("Sending to Java:", messageString);
+                bridge.postMessage(messageString);
+            } catch (e) {
+                console.error("Error sending message to Java:", e.message);
+                // If communication with Java fails, fall back to client-side validation
+                if (messageObject.action === 'validateForm') {
+                    fallbackValidation(messageObject.formData);
+                }
+            }
+        } else {
+            console.warn("Bridge not available. Using fallback validation.");
+            // If bridge isn't available, use client-side validation
+            if (messageObject.action === 'validateForm') {
+                fallbackValidation(messageObject.formData);
+            }
         }
-        // Call Java method
-        window.javaBridge.generatePlan(weight, height, age, gender);
-    }
-    function updateTable(meals) {
-        const tbody = document.getElementById('dietTable').getElementsByTagName('tbody')[0];
-        tbody.innerHTML = meals.map(m => `<tr><td>${m.meal}</td><td>${m.food}</td><td>${m.calories}</td></tr>`).join('');
     }
 
+    // Client-side validation as fallback if Java bridge is not available
+    function fallbackValidation(formData) {
+        const weight = parseFloat(formData.weight);
+        const height = parseFloat(formData.height);
+        const age = parseInt(formData.age);
+        const fullname = formData.fullname;
+        const email = formData.email;
+        
+        let isValid = true;
+        let errorMessage = "";
+        
+        // Validate inputs
+        if (!fullname || !email || isNaN(weight) || isNaN(height) || isNaN(age)) {
+            isValid = false;
+            errorMessage = 'Please fill all required fields correctly.';
+        } else if (weight < 30 || weight > 200) {
+            isValid = false;
+            errorMessage = 'Weight must be between 30 and 200 kg.';
+        } else if (height < 100 || height > 250) {
+            isValid = false;
+            errorMessage = 'Height must be between 100 and 250 cm.';
+        } else if (age < 5 || age > 100) {
+            isValid = false;
+            errorMessage = 'Age must be between 5 and 100 years.';
+        }
+        
+        // Handle the result
+        handleFormValidationResult({ valid: isValid, errorMessage: errorMessage });
+    }
+
+    // Handle form validation result from Java
+    function handleFormValidationResult(result) {
+        const errorElement = document.getElementById('validationError');
+        
+        if (result.valid) {
+            // If validation passed, hide any errors and navigate
+            errorElement.style.display = 'none';
+            window.location.href = 'meals.html';
+        } else {
+            // Show validation error
+            errorElement.textContent = result.errorMessage;
+            errorElement.style.display = 'block';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Try to initialize the JavaFX bridge
+        try {
+            if (window.bridge) {
+                console.log('JavaFX bridge initialized successfully');
+                bridge = window.bridge;
+            } else {
+                console.warn('JavaFX bridge not available');
+                setTimeout(() => {
+                    if (window.bridge) {
+                        bridge = window.bridge;
+                    }
+                }, 500);
+            }
+        } catch (e) {
+            console.error('Bridge initialization failed:', e.message);
+        }
+
+        // Add validation and submit handler
+        document.getElementById('generatePlanBtn').addEventListener('click', function() {
+            // Collect form data
+            const formData = {
+                fullname: document.getElementById('fullname').value,
+                email: document.getElementById('email').value,
+                weight: document.getElementById('weight').value,
+                height: document.getElementById('height').value,
+                age: document.getElementById('age').value,
+                gender: document.getElementById('gender').value
+            };
+            
+            // Send to Java for validation
+            sendMessageToJava({
+                action: 'validateForm',
+                formData: formData
+            });
+        });
+    });
 </script>
 </body>
 </html>
