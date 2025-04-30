@@ -58,9 +58,11 @@ html, body {
 
 .user-form {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-width: 400px;
+    flex-direction: row;     /* ➤ οριζόντια διάταξη */
+    gap: 40px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    width: 100%;
 }
 
 .user-form label {
@@ -75,29 +77,32 @@ html, body {
     border: 1px solid #ccc;
     border-radius: 6px;
     font-size: 16px;
+    width: 48%;
+    display: inline-block;
 }
 
 .user-form button {
-    margin-top: 20px;
-    padding: 12px;
+    align-self: flex-end;
+    margin-top: 10px;
+    padding: 12px 20px;
     background-color: #4a7856;
     color: white;
     font-family: 'Poppins', sans-serif;
     font-size: 16px;
     font-weight: 600;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
     transition: background-color 0.3s ease;
-    display: block;
 }
 .user-form button:hover {
     background-color: #3c6347;
 }
 .container {
     display: flex;
+    width: 70%;
     min-height: 70vh;
-    max-width: 1400px;
+    max-width: 1300px;
     border-radius: 20px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
     margin: 10px auto;
@@ -128,6 +133,11 @@ h1, h2, .sidebar h2 {
     color: #1e4028;
     font-weight: 600;
 }
+::placeholder {
+    color: #999;
+    font-style: italic;
+    font-family: 'Poppins', sans-serif;
+}
 select {
     font-family: 'Poppins', sans-serif; /* Use Poppins font */
     font-size: 16px;
@@ -138,7 +148,45 @@ select {
     padding: 10px;
     width: 100%;
     box-sizing: border-box;
+
+
 }
+.form-grid {
+    display: flex;
+    gap: 40px;
+    justify-content: space-between;
+    flex-wrap: nowrap; /* εξαναγκάζει την παράλληλη εμφάνιση */
+}
+
+.form-column {
+    flex: 1;
+    max-width: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.form-column label {
+    font-weight: 600;
+    font-family: 'Poppins', sans-serif;
+    color: #2d5d3a;
+}
+
+.form-column input,
+.form-column select {
+    padding: 10px;
+    font-size: 15px;
+    border: 1px solid #ccc;
+
+    font-family: 'Poppins', sans-serif;
+    width: 100%;
+    box-sizing: border-box;
+    background-color: #ffffff;
+    color: rgba(45, 93, 58, 0.6);
+    border-radius: 8px;
+    appearance: none;
+}
+
 .fruit {
     position: absolute;
     width: 120px;

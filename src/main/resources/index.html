@@ -29,23 +29,86 @@
     <main class="main-content">
         <h1>Enter User Information</h1>
         <form class="user-form" id="dietForm" onsubmit="return false;">
-            <label>Full Name <input type="text" id="fullname" required /></label>
-            <label>Email <input type="email" id="email" required /></label>
-            <div class="row">
-                <label>Age <input type="number" id="age" min="5" max="100" required /></label>
-                <label>Height (cm) <input type="number" id="height" min="100" max="250" required /></label>
-                <label>Current Weight (kg) <input type="number" id="weight" min="30" max="200" required /></label>
+            <div class="form-grid">
+                <!-- Στήλη 1 -->
+                <div class="form-column">
+                    <label>Full Name
+                        <input type="text" id="fullname" required />
+                    </label>
+
+                    <label>Email
+                        <input type="email" id="email" required />
+                    </label>
+
+                    <label>Age
+                        <input type="number" id="age" min="5" max="100" required />
+                    </label>
+
+                    <label>Height (cm)
+                        <input type="number" id="height" min="100" max="250" required />
+                    </label>
+
+                    <label>Current Weight (kg)
+                        <input type="number" id="weight" min="30" max="200" required />
+                    </label>
+
+                    <label>Gender
+                        <select id="gender">
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </label>
+                </div>
+
+                <!-- Στήλη 2 -->
+                <div class="form-column">
+                    <label>Goal
+                        <select id="goal">
+                            <option value="">Select goal</option>
+                            <option value="lose">Weight Loss</option>
+                            <option value="maintain">Weight Maintenance</option>
+                            <option value="gain">Weight Gain</option>
+                        </select>
+                    </label>
+
+                    <label>Activity Level
+                        <select id="activity">
+                            <option value="">Select activity</option>
+                            <option value="low">Low</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="high">High</option>
+                        </select>
+                    </label>
+
+                    <label>Dietary Preferences
+                        <select id="preferences">
+                            <option value="">None</option>
+                            <option value="vegetarian">Vegetarian</option>
+                            <option value="vegan">Vegan</option>
+                        </select>
+                    </label>
+
+                    <label>Food Allergies
+                        <input type="text" id="allergies" placeholder="e.g. peanuts, dairy" />
+                    </label>
+
+                    <label>Meals per Day
+                        <select id="meals">
+                            <option>3</option>
+                            <option>4</option>
+                            <option>5</option>
+                        </select>
+                    </label>
+                    <button type="button" id="generatePlanBtn">Generate Plan</button>
+                </div>
             </div>
-            <label for="gender">Gender</label>
-            <select id="gender">
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-            </select>
-            <button type="button" id="generatePlanBtn">Generate Plan</button>
+
+
             <div id="validationError" style="color: red; display: none;"></div>
         </form>
     </main>
+
 </div>
 
 <script>
