@@ -7,6 +7,8 @@ import javafx.scene.web.WebView;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import netscape.javascript.JSObject;
+import com.example.dietapp.model.SavefromDatabase;
+
 
 public class Main extends Application {
     private Controller controller;
@@ -83,5 +85,9 @@ public class Main extends Application {
 
     public static void main(String[] args) {
         launch(args);
+
     }
+
+
+
 }

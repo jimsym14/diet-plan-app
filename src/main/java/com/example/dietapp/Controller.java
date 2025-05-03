@@ -15,6 +15,9 @@ import java.io.File;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import com.example.dietapp.model.User;
+import com.example.dietapp.model.SavefromDatabase;
+
 
 public class Controller {
     private final WebView webView;
@@ -393,6 +396,20 @@ public class Controller {
             String heightStr = formData.has("height") ? formData.get("height").getAsString() : "";
             String ageStr = formData.has("age") ? formData.get("age").getAsString() : "";
             String gender = formData.has("gender") ? formData.get("gender").getAsString() : "";
+            String goal = formData.has("goal") ? formData.get("goal").getAsString() : "";
+            String activity = formData.has("activityLevel") ? formData.get("activityLevel").getAsString() : "";
+            String preferences = formData.has("dietaryPreferences") ? formData.get("dietaryPreferences").getAsString() : "";
+            String allergies = formData.has("foodAllergies") ? formData.get("foodAllergies").getAsString() : "";
+            int mealsPerDay = formData.has("mealsPerDay") ? formData.get("mealsPerDay").getAsInt() : 3;
+
+// ➕ Μετατροπή σε αριθμούς
+            double weight = Double.parseDouble(weightStr);
+            double height = Double.parseDouble(heightStr);
+            int age = Integer.parseInt(ageStr);
+
+// ➕ Δημιουργία χρήστη και αποθήκευση
+            User user = new User(fullname, email, age, height, weight, gender, goal, activity, preferences, allergies, mealsPerDay);
+            SavefromDatabase.saveUser(user);
 
             // Log the form data but don't validate it
             System.out.println("📝 Form data received: " +
@@ -401,7 +418,13 @@ public class Controller {
                     "Weight: " + (weightStr.isEmpty() ? "Not provided" : weightStr) + "kg, " +
                     "Height: " + (heightStr.isEmpty() ? "Not provided" : heightStr) + "cm, " +
                     "Age: " + (ageStr.isEmpty() ? "Not provided" : ageStr) + ", " +
-                    "Gender: " + (gender.isEmpty() ? "Not provided" : gender));
+                    "Gender: " + (gender.isEmpty() ? "Not provided" : gender) + ", " +
+                    "Goal: " + (formData.has("goal") && !formData.get("goal").isJsonNull() ? formData.get("goal").getAsString() : "Not provided") + ", " +
+                    "Activity Level: " + (formData.has("activityLevel") && !formData.get("activityLevel").isJsonNull() ? formData.get("activityLevel").getAsString() : "Not provided") + ", " +
+                    "Dietary Preferences: " + (formData.has("dietaryPreferences") && !formData.get("dietaryPreferences").isJsonNull() ? formData.get("dietaryPreferences").getAsString() : "Not provided") + ", " +
+                    "Allergies: " + (formData.has("foodAllergies") && !formData.get("foodAllergies").isJsonNull() ? formData.get("foodAllergies").getAsString() : "Not provided") + ", " +
+                    "Meals/Day: " + (formData.has("mealsPerDay") && !formData.get("mealsPerDay").isJsonNull() ? formData.get("mealsPerDay").getAsInt() : "Not provided"));
+
 
             // We're allowing empty form submission, so we don't need validation
             // You can uncomment this validation if you want to restore it later
@@ -462,6 +485,7 @@ public class Controller {
                 System.err.println("❌ Failed to send form validation result: " + e.getMessage());
             }
         });
+
     }
 
     private List<Meal> getAllMeals() throws SQLException {
