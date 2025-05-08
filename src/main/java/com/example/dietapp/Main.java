@@ -30,7 +30,8 @@ public class Main extends Application {
 
                     // Set up the bridge
                     System.out.println("🌉 Setting up JavaFX bridge...");
-                    System.out.println("χψωγηξιθυτφδφωγβηξ");
+                    System.out.println("χψωγηξιθυτφδφωγβηξγγη");
+                    System.out.println("γβηφη");
                     JSObject window = (JSObject) webView.getEngine().executeScript("window");
                     window.setMember("javaConnector", controller);
                     webView.getEngine().executeScript(
