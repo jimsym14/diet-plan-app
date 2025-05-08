@@ -16,7 +16,7 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) {
         WebView webView = new WebView();
-        controller = new Controller(webView);// Παναγιωτα!
+        controller = new Controller(webView);
 
         // Load the initial page
         webView.getEngine().load(Main.class.getResource("/index.html").toExternalForm());
@@ -30,6 +30,7 @@ public class Main extends Application {
 
                     // Set up the bridge
                     System.out.println("🌉 Setting up JavaFX bridge...");
+                    System.out.println("ωβνμ,κξβκνμκξν");
                     JSObject window = (JSObject) webView.getEngine().executeScript("window");
                     window.setMember("javaConnector", controller);
                     webView.getEngine().executeScript(
