@@ -16,7 +16,7 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) {
         WebView webView = new WebView();
-        controller = new Controller(webView);
+        controller = new Controller(webView);// Παναγιωτα!
 
         // Load the initial page
         webView.getEngine().load(Main.class.getResource("/index.html").toExternalForm());
