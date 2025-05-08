@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import com.example.dietapp.model.User;
 import com.example.dietapp.model.SavefromDatabase;
-
+import com.example.dietapp.model.CalorieCalculator;
 
 public class Controller {
     private final WebView webView;
@@ -410,6 +410,10 @@ public class Controller {
 // ➕ Δημιουργία χρήστη και αποθήκευση
             User user = new User(fullname, email, age, height, weight, gender, goal, activity, preferences, allergies, mealsPerDay);
             SavefromDatabase.saveUser(user);
+            double targetCalories = CalorieCalculator.calculateCalories(user);
+            dietPlan.setDailyTargetCalories(targetCalories);
+            nutritionCalculator.setAllDailyTargets(targetCalories);
+            System.out.println("🎯 User-specific target calories set: " + targetCalories);
 
             // Log the form data but don't validate it
             System.out.println("📝 Form data received: " +

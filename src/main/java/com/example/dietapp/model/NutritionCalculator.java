@@ -52,9 +52,6 @@ public class NutritionCalculator {
         dailyCarbsTotals.put(day, 0.0);
         dailyFatTotals.put(day, 0.0);
 
-        // Reset calories to default value (this represents "remaining calories")
-        dailyCalorieTargets.put(day, DEFAULT_DAILY_CALORIES);
-
         double totalCalories = 0.0;
         double totalProtein = 0.0;
         double totalCarbs = 0.0;
@@ -75,9 +72,11 @@ public class NutritionCalculator {
             }
         }
 
-        // Update nutrition maps with calculated values
-        double remainingCalories = DEFAULT_DAILY_CALORIES - totalCalories;
-        dailyCalorieTargets.put(day, remainingCalories);
+        // ✅ Χρήση του σωστού target για τη μέρα
+        double targetCalories = dailyCalorieTargets.getOrDefault(day, DEFAULT_DAILY_CALORIES);
+        double remainingCalories = targetCalories - totalCalories;
+
+        dailyCalorieTargets.put(day, remainingCalories); // Ενημέρωσε το map με το remaining
         dailyProteinTotals.put(day, totalProtein);
         dailyCarbsTotals.put(day, totalCarbs);
         dailyFatTotals.put(day, totalFat);
@@ -205,6 +204,11 @@ public class NutritionCalculator {
             }
         }
         return null;
+    }
+    public void setAllDailyTargets(double calories) {
+        for (String day : dailyCalorieTargets.keySet()) {
+            dailyCalorieTargets.put(day, calories);
+        }
     }
 
     // Getters for each map
