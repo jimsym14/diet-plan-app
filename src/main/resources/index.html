@@ -3,42 +3,222 @@
 <head>
     <title>Diet Plan App</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 </head>
-<body>
-<h1>Personal Diet Plan</h1>
-<div class="form">
-    <input id="weight" type="number" placeholder="Weight (kg)" required>
-    <input id="height" type="number" placeholder="Height (cm)" required>
-    <input id="age" type="number" placeholder="Age" required>
-    <select id="gender">
-        <option value="male">Male</option>
-        <option value="female">Female</option>
-    </select>
-    <button onclick="generatePlan()">Generate Plan</button>
+<body class="index-page">
+<img src="orange1.png" class="fruit fruit1">
+<img src="apple1.png" class="fruit fruit2">
+<img src="banana1.png" class="fruit fruit3">
+<img src="banana1.png" class="fruit fruit4">
+<img src="orange1.png" class="fruit fruit5">
+<img src="apple1.png" class="fruit fruit6">
+<img src="orange1.png" class="fruit fruit7">
+<img src="banana1.png" class="fruit fruit8">
+
+<div class="container">
+    <aside class="sidebar">
+        <h2>DIET PLAN</h2>
+        <ul>
+            <li><span></span> Dashboard</li>
+            <li><span></span> Clients</li>
+            <li><span></span> Meal Plans</li>
+            <li><span></span> Recipes</li>
+            <li><span></span> Settings</li>
+        </ul>
+    </aside>
+    <main class="main-content">
+        <h1>Enter User Information</h1>
+        <form class="user-form" id="dietForm" onsubmit="return false;">
+            <div class="form-grid">
+                <!-- Στήλη 1 -->
+                <div class="form-column">
+                    <label>Full Name
+                        <input type="text" id="fullname" required />
+                    </label>
+
+                    <label>Email
+                        <input type="email" id="email" required />
+                    </label>
+
+                    <label>Age
+                        <input type="number" id="age" min="5" max="100" required />
+                    </label>
+
+                    <label>Height (cm)
+                        <input type="number" id="height" min="100" max="250" required />
+                    </label>
+
+                    <label>Current Weight (kg)
+                        <input type="number" id="weight" min="30" max="200" required />
+                    </label>
+
+                    <label>Gender
+                        <select id="gender">
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </label>
+                </div>
+
+                <!-- Στήλη 2 -->
+                <div class="form-column">
+                    <label>Goal
+                        <select id="goal">
+                            <option value="">Select goal</option>
+                            <option value="lose">Weight Loss</option>
+                            <option value="maintain">Weight Maintenance</option>
+                            <option value="gain">Weight Gain</option>
+                        </select>
+                    </label>
+
+                    <label>Activity Level
+                        <select id="activity">
+                            <option value="">Select activity</option>
+                            <option value="low">Low</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="high">High</option>
+                        </select>
+                    </label>
+
+                    <label>Dietary Preferences
+                        <select id="preferences">
+                            <option value="">None</option>
+                            <option value="vegetarian">Vegetarian</option>
+                            <option value="vegan">Vegan</option>
+                        </select>
+                    </label>
+
+                    <label>Food Allergies
+                        <input type="text" id="allergies" placeholder="e.g. peanuts, dairy" />
+                    </label>
+
+                    <label>Meals per Day
+                        <select id="meals">
+                            <option>3</option>
+                            <option>4</option>
+                            <option>5</option>
+                        </select>
+                    </label>
+                    <button type="button" id="generatePlanBtn">Generate Plan</button>
+                </div>
+            </div>
+
+
+            <div id="validationError" style="color: red; display: none;"></div>
+        </form>
+    </main>
+
 </div>
-<table id="dietTable">
-    <thead>
-    <tr><th>Meal</th><th>Food</th><th>Calories</th></tr>
-    </thead>
-    <tbody></tbody>
-</table>
+
 <script>
-    function generatePlan() {
-        const weight = parseFloat(document.getElementById('weight').value);
-        const height = parseFloat(document.getElementById('height').value);
-        const age = parseInt(document.getElementById('age').value);
-        const gender = document.getElementById('gender').value;
-        if (isNaN(weight) || isNaN(height) || isNaN(age)) {
-            alert('Please fill all fields.');
-            return;
+    let bridge = null;
+
+    // Function to send message to Java backend
+    function sendMessageToJava(messageObject) {
+        if (bridge) {
+            try {
+                const messageString = JSON.stringify(messageObject);
+                console.log("Sending to Java:", messageString);
+                bridge.postMessage(messageString);
+            } catch (e) {
+                console.error("Error sending message to Java:", e.message);
+                // If communication with Java fails, fall back to client-side validation
+                if (messageObject.action === 'validateForm') {
+                    fallbackValidation(messageObject.formData);
+                }
+            }
+        } else {
+            console.warn("Bridge not available. Using fallback validation.");
+            // If bridge isn't available, use client-side validation
+            if (messageObject.action === 'validateForm') {
+                fallbackValidation(messageObject.formData);
+            }
         }
-        // Call Java method
-        window.javaBridge.generatePlan(weight, height, age, gender);
     }
-    function updateTable(meals) {
-        const tbody = document.getElementById('dietTable').getElementsByTagName('tbody')[0];
-        tbody.innerHTML = meals.map(m => `<tr><td>${m.meal}</td><td>${m.food}</td><td>${m.calories}</td></tr>`).join('');
+
+    // Client-side validation as fallback if Java bridge is not available
+    function fallbackValidation(formData) {
+        const weight = parseFloat(formData.weight);
+        const height = parseFloat(formData.height);
+        const age = parseInt(formData.age);
+        const fullname = formData.fullname;
+        const email = formData.email;
+        
+        let isValid = true;
+        let errorMessage = "";
+        
+        // Validate inputs
+        if (!fullname || !email || isNaN(weight) || isNaN(height) || isNaN(age)) {
+            isValid = false;
+            errorMessage = 'Please fill all required fields correctly.';
+        } else if (weight < 30 || weight > 200) {
+            isValid = false;
+            errorMessage = 'Weight must be between 30 and 200 kg.';
+        } else if (height < 100 || height > 250) {
+            isValid = false;
+            errorMessage = 'Height must be between 100 and 250 cm.';
+        } else if (age < 5 || age > 100) {
+            isValid = false;
+            errorMessage = 'Age must be between 5 and 100 years.';
+        }
+        
+        // Handle the result
+        handleFormValidationResult({ valid: isValid, errorMessage: errorMessage });
     }
+
+    // Handle form validation result from Java
+    function handleFormValidationResult(result) {
+        const errorElement = document.getElementById('validationError');
+        
+        if (result.valid) {
+            // If validation passed, hide any errors and navigate
+            errorElement.style.display = 'none';
+            window.location.href = 'meals.html';
+        } else {
+            // Show validation error
+            errorElement.textContent = result.errorMessage;
+            errorElement.style.display = 'block';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Try to initialize the JavaFX bridge
+        try {
+            if (window.bridge) {
+                console.log('JavaFX bridge initialized successfully');
+                bridge = window.bridge;
+            } else {
+                console.warn('JavaFX bridge not available');
+                setTimeout(() => {
+                    if (window.bridge) {
+                        bridge = window.bridge;
+                    }
+                }, 500);
+            }
+        } catch (e) {
+            console.error('Bridge initialization failed:', e.message);
+        }
+
+        // Add validation and submit handler
+        document.getElementById('generatePlanBtn').addEventListener('click', function() {
+            // Collect form data
+            const formData = {
+                fullname: document.getElementById('fullname').value,
+                email: document.getElementById('email').value,
+                weight: document.getElementById('weight').value,
+                height: document.getElementById('height').value,
+                age: document.getElementById('age').value,
+                gender: document.getElementById('gender').value
+            };
+            
+            // Send to Java for validation
+            sendMessageToJava({
+                action: 'validateForm',
+                formData: formData
+            });
+        });
+    });
 </script>
 </body>
 </html>
