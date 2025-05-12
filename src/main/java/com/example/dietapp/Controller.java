@@ -444,8 +444,8 @@ public class Controller {
 
         Platform.runLater(() -> {
             try {
-                // ✔ Αντί να απαντήσεις με JS μήνυμα, απλά φόρτωσε τη σελίδα
                 webView.getEngine().load(getClass().getResource("/meals.html").toExternalForm());
+                System.out.println("🌐 Loading meals.html after form validation.");
             } catch (Exception e) {
                 System.err.println("❌ Failed to load meals.html: " + e.getMessage());
                 e.printStackTrace();

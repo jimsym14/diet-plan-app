@@ -168,18 +168,18 @@
     }
 
     // Handle form validation result from Java
-    /*function handleFormValidationResult(result) {
+    function handleFormValidationResult(result) {
         const errorElement = document.getElementById('validationError');
 
         if (result.valid) {
             errorElement.style.display = 'none';
-
-            // Καθυστέρησε λίγο ώστε η Java να έχει στείλει τα δεδομένα
-            setTimeout(() => {
-                window.location.href = 'meals.html';
-            }, 300); // δοκίμασε με 300ms ή και 500ms αν χρειαστεί
+            console.log("✅ Validation passed. Java will now load meals.html.");
+            // Do nothing here – Java handles the page load now
+        } else {
+            errorElement.textContent = result.errorMessage;
+            errorElement.style.display = 'block';
         }
-    }*/
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
         // Try to initialize the JavaFX bridge
