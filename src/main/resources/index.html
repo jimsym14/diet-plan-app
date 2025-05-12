@@ -168,19 +168,18 @@
     }
 
     // Handle form validation result from Java
-    function handleFormValidationResult(result) {
+    /*function handleFormValidationResult(result) {
         const errorElement = document.getElementById('validationError');
-        
+
         if (result.valid) {
-            // If validation passed, hide any errors and navigate
             errorElement.style.display = 'none';
-            window.location.href = 'meals.html';
-        } else {
-            // Show validation error
-            errorElement.textContent = result.errorMessage;
-            errorElement.style.display = 'block';
+
+            // Καθυστέρησε λίγο ώστε η Java να έχει στείλει τα δεδομένα
+            setTimeout(() => {
+                window.location.href = 'meals.html';
+            }, 300); // δοκίμασε με 300ms ή και 500ms αν χρειαστεί
         }
-    }
+    }*/
 
     document.addEventListener('DOMContentLoaded', function() {
         // Try to initialize the JavaFX bridge
@@ -209,7 +208,12 @@
                 weight: document.getElementById('weight').value,
                 height: document.getElementById('height').value,
                 age: document.getElementById('age').value,
-                gender: document.getElementById('gender').value
+                gender: document.getElementById('gender').value,
+                goal: document.getElementById('goal').value,
+                activityLevel: document.getElementById('activity').value,
+                dietaryPreferences: document.getElementById('preferences').value,
+                foodAllergies: document.getElementById('allergies').value,
+                mealsPerDay: parseInt(document.getElementById('meals').value)
             };
             
             // Send to Java for validation

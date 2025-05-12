@@ -141,23 +141,19 @@ public class Controller {
 
     private void toggleMealSelection(String day, int mealId) {
         List<Integer> selectedMeals = dietPlan.getMealsForDay(day);
-        Meal meal = findMealById(mealId);
 
         if (selectedMeals.contains(mealId)) {
             dietPlan.removeMealFromDay(day, mealId);
             System.out.println("➖ Meal removed: ID " + mealId + " from day " + day);
-
-            // Use the NutritionCalculator to remove the meal's nutrition
-            nutritionCalculator.removeMealNutrition(day, meal);
         } else {
             dietPlan.addMealToDay(day, mealId);
             System.out.println("➕ Meal added: ID " + mealId + " to day " + day);
-
-            // Use the NutritionCalculator to add the meal's nutrition
-            nutritionCalculator.addMealNutrition(day, meal);
         }
 
-        // Update all nutrition displays
+        // ✅ Πάντα υπολογίζουμε από την αρχή όλη τη διατροφή για τη μέρα
+        nutritionCalculator.calculateNutritionForDay(day, dietPlan.getMealsForDay(day), allMealsCache);
+
+        // ✅ Ενημέρωση UI
         updateNutritionDisplays(day);
     }
 
@@ -239,12 +235,14 @@ public class Controller {
         List<Integer> initialSelectedIds = dietPlan.getMealsForDay(currentDay);
         String initialSelectedIdsJson = new Gson().toJson(initialSelectedIds);
 
-        // Execute setup script with pre-generated HTML
+        double dailyTarget = dietPlan.getDailyTargetCalories();
         String script = String.format(
-                "document.getElementById('mealContainer').innerHTML = `%s`; setupPageWithHtml('%s', %s);",
+                "document.getElementById('mealContainer').innerHTML = `%s`; setupPageWithHtml('%s', %s, %f);",
                 mealCardsHtml.replace("`", "\\`"), // Escape backticks in HTML
                 currentDay,
-                initialSelectedIdsJson);
+                initialSelectedIdsJson,
+                dailyTarget
+        );
 
         Platform.runLater(() -> {
             try {
@@ -374,9 +372,9 @@ public class Controller {
         Platform.runLater(() -> {
             try {
                 webView.getEngine().executeScript(script);
-                System.out.println("✅ Updated UI with filtered meals");
+                System.out.println(" Updated UI with filtered meals");
             } catch (Exception e) {
-                System.err.println("❌ Failed to update meal cards: " + e.getMessage());
+                System.err.println(" Failed to update meal cards: " + e.getMessage());
                 e.printStackTrace();
             }
         });
@@ -384,12 +382,11 @@ public class Controller {
 
     // Process form validation from index.html
     private void validateUserForm(JsonObject formData) {
-        // We'll always consider the form valid to allow empty form submission
         final boolean[] isValid = { true };
         final String[] errorMessage = { "" };
 
         try {
-            // Extract form data
+            //  Ανάκτηση δεδομένων
             String fullname = formData.has("fullname") ? formData.get("fullname").getAsString() : "";
             String email = formData.has("email") ? formData.get("email").getAsString() : "";
             String weightStr = formData.has("weight") ? formData.get("weight").getAsString() : "";
@@ -402,94 +399,58 @@ public class Controller {
             String allergies = formData.has("foodAllergies") ? formData.get("foodAllergies").getAsString() : "";
             int mealsPerDay = formData.has("mealsPerDay") ? formData.get("mealsPerDay").getAsInt() : 3;
 
-// ➕ Μετατροπή σε αριθμούς
+            //  Μετατροπή αριθμητικών τιμών
             double weight = Double.parseDouble(weightStr);
             double height = Double.parseDouble(heightStr);
             int age = Integer.parseInt(ageStr);
 
-// ➕ Δημιουργία χρήστη και αποθήκευση
+            //  Δημιουργία χρήστη & υπολογισμός στόχου θερμίδων
             User user = new User(fullname, email, age, height, weight, gender, goal, activity, preferences, allergies, mealsPerDay);
             SavefromDatabase.saveUser(user);
+
             double targetCalories = CalorieCalculator.calculateCalories(user);
             dietPlan.setDailyTargetCalories(targetCalories);
             nutritionCalculator.setAllDailyTargets(targetCalories);
-            System.out.println("🎯 User-specific target calories set: " + targetCalories);
 
-            // Log the form data but don't validate it
-            System.out.println("📝 Form data received: " +
-                    "Name: " + (fullname.isEmpty() ? "Not provided" : fullname) + ", " +
-                    "Email: " + (email.isEmpty() ? "Not provided" : email) + ", " +
-                    "Weight: " + (weightStr.isEmpty() ? "Not provided" : weightStr) + "kg, " +
-                    "Height: " + (heightStr.isEmpty() ? "Not provided" : heightStr) + "cm, " +
-                    "Age: " + (ageStr.isEmpty() ? "Not provided" : ageStr) + ", " +
-                    "Gender: " + (gender.isEmpty() ? "Not provided" : gender) + ", " +
-                    "Goal: " + (formData.has("goal") && !formData.get("goal").isJsonNull() ? formData.get("goal").getAsString() : "Not provided") + ", " +
-                    "Activity Level: " + (formData.has("activityLevel") && !formData.get("activityLevel").isJsonNull() ? formData.get("activityLevel").getAsString() : "Not provided") + ", " +
-                    "Dietary Preferences: " + (formData.has("dietaryPreferences") && !formData.get("dietaryPreferences").isJsonNull() ? formData.get("dietaryPreferences").getAsString() : "Not provided") + ", " +
-                    "Allergies: " + (formData.has("foodAllergies") && !formData.get("foodAllergies").isJsonNull() ? formData.get("foodAllergies").getAsString() : "Not provided") + ", " +
-                    "Meals/Day: " + (formData.has("mealsPerDay") && !formData.get("mealsPerDay").isJsonNull() ? formData.get("mealsPerDay").getAsInt() : "Not provided"));
+            System.out.println(" Υπολογισμένες θερμίδες χρήστη: " + targetCalories);
+            System.out.println(" Ελεγχος στόχων ανά ημέρα:");
+            nutritionCalculator.getDailyCalorieTargets().forEach((day, cal) -> {
+                System.out.println("   " + day + " ➜ " + cal + " kcal");
+            });
 
+            // ➕ Αν δεν έχουν φορτωθεί γεύματα, τα φέρνουμε
+            if (allMealsCache == null) {
+                try {
+                    allMealsCache = getAllMeals();
+                } catch (SQLException ex) {
+                    System.err.println("Σφάλμα φόρτωσης meals από DB: " + ex.getMessage());
+                }
+            }
 
-            // We're allowing empty form submission, so we don't need validation
-            // You can uncomment this validation if you want to restore it later
-            /*
-             * // Basic validation
-             * if (fullname.isEmpty() || email.isEmpty() || weightStr.isEmpty() ||
-             * heightStr.isEmpty() || ageStr.isEmpty()) {
-             * isValid[0] = false;
-             * errorMessage[0] = "Please fill all required fields correctly.";
-             * } else {
-             * try {
-             * // Parse and validate numeric values
-             * double weight = Double.parseDouble(weightStr);
-             * double height = Double.parseDouble(heightStr);
-             * int age = Integer.parseInt(ageStr);
-             * 
-             * // Validate weight
-             * if (weight < 30 || weight > 200) {
-             * isValid[0] = false;
-             * errorMessage[0] = "Weight must be between 30 and 200 kg.";
-             * }
-             * // Validate height
-             * else if (height < 100 || height > 250) {
-             * isValid[0] = false;
-             * errorMessage[0] = "Height must be between 100 and 250 cm.";
-             * }
-             * // Validate age
-             * else if (age < 5 || age > 100) {
-             * isValid[0] = false;
-             * errorMessage[0] = "Age must be between 5 and 100 years.";
-             * }
-             * 
-             * } catch (NumberFormatException e) {
-             * isValid[0] = false;
-             * errorMessage[0] = "Please enter valid numbers for weight, height, and age.";
-             * }
-             * }
-             */
+            // ➕ Υπολογισμός μακροθρεπτικών για την τρέχουσα μέρα
+            nutritionCalculator.calculateNutritionForDay(currentDay, dietPlan.getMealsForDay(currentDay), allMealsCache);
+
+            System.out.println(" Ολοκληρώθηκε η καταγραφή & υπολογισμός θερμίδων");
+
         } catch (Exception e) {
-            // Log any errors but still allow the form to be submitted
-            System.err.println("❌ Error processing form data: " + e.getMessage());
+            System.err.println("❌ Σφάλμα κατά την επεξεργασία δεδομένων φόρμας: " + e.getMessage());
             e.printStackTrace();
         }
 
-        // Send result back to JavaScript - always valid
+        // ➕ Επιστροφή αποτελέσματος στη JavaScript
         final String safeErrorMessage = errorMessage[0].replace("\"", "\\\"");
-        final String resultJson = String.format("{ \"valid\": %b, \"errorMessage\": \"%s\" }", isValid[0],
-                safeErrorMessage);
+        final String resultJson = String.format("{ \"valid\": %b, \"errorMessage\": \"%s\" }", isValid[0], safeErrorMessage);
         final String script = String.format("handleFormValidationResult(%s);", resultJson);
 
-        // Execute callback in JavaScript
         Platform.runLater(() -> {
             try {
-                webView.getEngine().executeScript(script);
-                System.out.println(
-                        "📝 Form validation result: " + (isValid[0] ? "Valid" : "Invalid - " + errorMessage[0]));
+                // ✔ Αντί να απαντήσεις με JS μήνυμα, απλά φόρτωσε τη σελίδα
+                webView.getEngine().load(getClass().getResource("/meals.html").toExternalForm());
             } catch (Exception e) {
-                System.err.println("❌ Failed to send form validation result: " + e.getMessage());
+                System.err.println("❌ Failed to load meals.html: " + e.getMessage());
+                e.printStackTrace();
             }
         });
-
     }
 
     private List<Meal> getAllMeals() throws SQLException {

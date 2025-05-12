@@ -101,7 +101,8 @@
         let dailyFat = {}; // Track fat totals by day
         
         // Default nutrition targets
-        const DEFAULT_DAILY_CALORIES = 2000; // Default daily calorie target
+        let DEFAULT_DAILY_CALORIES = 2000;
+        // Default daily calorie target
         const DEFAULT_PROTEIN_GOAL = 120; // Default daily protein goal in grams
         const DEFAULT_CARBS_GOAL = 250; // Default daily carbs goal in grams
         const DEFAULT_FAT_GOAL = 65; // Default daily fat goal in grams
@@ -636,7 +637,13 @@
         }
 
         // Function called by Java when it provides pre-generated HTML
-        function setupPageWithHtml(initialDay, initialSelectedIds) {
+        function setupPageWithHtml(initialDay, initialSelectedIds, targetCalories) {
+            if (targetCalories && !isNaN(targetCalories)) {
+                DEFAULT_DAILY_CALORIES = targetCalories;
+                console.log("🎯 Default daily calories set from Java:", DEFAULT_DAILY_CALORIES);
+            } else {
+                console.warn("⚠️ No target calories received, using default 2000 kcal");
+            }
             showDebug(`Setting up page with pre-generated HTML for day: ${initialDay}`);
             
             try {

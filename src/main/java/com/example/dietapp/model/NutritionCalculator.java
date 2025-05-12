@@ -9,30 +9,28 @@ import java.util.Map;
  * This moves nutrition calculation logic from JavaScript to Java.
  */
 public class NutritionCalculator {
-    // Default nutrition targets
     public static final double DEFAULT_DAILY_CALORIES = 2000.0;
     public static final double DEFAULT_PROTEIN_GOAL = 120.0;
     public static final double DEFAULT_CARBS_GOAL = 250.0;
     public static final double DEFAULT_FAT_GOAL = 65.0;
 
     private final Map<String, Double> dailyCalorieTargets;
+    private final Map<String, Double> dailyCaloriesConsumed;
     private final Map<String, Double> dailyProteinTotals;
     private final Map<String, Double> dailyCarbsTotals;
     private final Map<String, Double> dailyFatTotals;
 
-    /**
-     * Constructor initializes the nutrition maps with default values
-     */
     public NutritionCalculator() {
         this.dailyCalorieTargets = new HashMap<>();
+        this.dailyCaloriesConsumed = new HashMap<>();
         this.dailyProteinTotals = new HashMap<>();
         this.dailyCarbsTotals = new HashMap<>();
         this.dailyFatTotals = new HashMap<>();
 
-        // Initialize default values for each day
         String[] days = { "MO", "TU", "WE", "TH", "FR", "SA", "SU" };
         for (String day : days) {
             dailyCalorieTargets.put(day, DEFAULT_DAILY_CALORIES);
+            dailyCaloriesConsumed.put(day, 0.0);
             dailyProteinTotals.put(day, 0.0);
             dailyCarbsTotals.put(day, 0.0);
             dailyFatTotals.put(day, 0.0);
@@ -47,36 +45,23 @@ public class NutritionCalculator {
      * @param allMeals        All available meals to choose from
      */
     public void calculateNutritionForDay(String day, List<Integer> selectedMealIds, List<Meal> allMeals) {
-        // Reset totals for the day
-        dailyProteinTotals.put(day, 0.0);
-        dailyCarbsTotals.put(day, 0.0);
-        dailyFatTotals.put(day, 0.0);
-
         double totalCalories = 0.0;
         double totalProtein = 0.0;
         double totalCarbs = 0.0;
         double totalFat = 0.0;
 
-        // Calculate totals from selected meals
         for (Integer mealId : selectedMealIds) {
             Meal meal = findMealById(mealId, allMeals);
             if (meal != null) {
-                if (meal.getCalories() != null)
-                    totalCalories += meal.getCalories();
-                if (meal.getProtein() != null)
-                    totalProtein += meal.getProtein();
-                if (meal.getCarbs() != null)
-                    totalCarbs += meal.getCarbs();
-                if (meal.getFat() != null)
-                    totalFat += meal.getFat();
+                if (meal.getCalories() != null) totalCalories += meal.getCalories();
+                if (meal.getProtein() != null) totalProtein += meal.getProtein();
+                if (meal.getCarbs() != null) totalCarbs += meal.getCarbs();
+                if (meal.getFat() != null) totalFat += meal.getFat();
             }
         }
 
-        // ✅ Χρήση του σωστού target για τη μέρα
-        double targetCalories = dailyCalorieTargets.getOrDefault(day, DEFAULT_DAILY_CALORIES);
-        double remainingCalories = targetCalories - totalCalories;
-
-        dailyCalorieTargets.put(day, remainingCalories); // Ενημέρωσε το map με το remaining
+        //  Ενημερώνει τους χάρτες
+        dailyCaloriesConsumed.put(day, totalCalories);
         dailyProteinTotals.put(day, totalProtein);
         dailyCarbsTotals.put(day, totalCarbs);
         dailyFatTotals.put(day, totalFat);
@@ -86,29 +71,23 @@ public class NutritionCalculator {
      * Add a meal to the nutrition totals for a day
      */
     public void addMealNutrition(String day, Meal meal) {
-        if (meal == null)
-            return;
+        if (meal == null) return;
 
-        // Update protein, carbs, fat
-        if (meal.getProtein() != null) {
-            double currentProtein = dailyProteinTotals.getOrDefault(day, 0.0);
-            dailyProteinTotals.put(day, currentProtein + meal.getProtein());
-        }
-
-        if (meal.getCarbs() != null) {
-            double currentCarbs = dailyCarbsTotals.getOrDefault(day, 0.0);
-            dailyCarbsTotals.put(day, currentCarbs + meal.getCarbs());
-        }
-
-        if (meal.getFat() != null) {
-            double currentFat = dailyFatTotals.getOrDefault(day, 0.0);
-            dailyFatTotals.put(day, currentFat + meal.getFat());
-        }
-
-        // Update calories
         if (meal.getCalories() != null) {
-            double currentTarget = dailyCalorieTargets.getOrDefault(day, DEFAULT_DAILY_CALORIES);
-            dailyCalorieTargets.put(day, Math.max(0, currentTarget - meal.getCalories()));
+            double current = dailyCaloriesConsumed.getOrDefault(day, 0.0);
+            dailyCaloriesConsumed.put(day, current + meal.getCalories());
+        }
+        if (meal.getProtein() != null) {
+            double current = dailyProteinTotals.getOrDefault(day, 0.0);
+            dailyProteinTotals.put(day, current + meal.getProtein());
+        }
+        if (meal.getCarbs() != null) {
+            double current = dailyCarbsTotals.getOrDefault(day, 0.0);
+            dailyCarbsTotals.put(day, current + meal.getCarbs());
+        }
+        if (meal.getFat() != null) {
+            double current = dailyFatTotals.getOrDefault(day, 0.0);
+            dailyFatTotals.put(day, current + meal.getFat());
         }
     }
 
@@ -116,29 +95,23 @@ public class NutritionCalculator {
      * Remove a meal from the nutrition totals for a day
      */
     public void removeMealNutrition(String day, Meal meal) {
-        if (meal == null)
-            return;
+        if (meal == null) return;
 
-        // Update protein, carbs, fat
-        if (meal.getProtein() != null) {
-            double currentProtein = dailyProteinTotals.getOrDefault(day, 0.0);
-            dailyProteinTotals.put(day, Math.max(0, currentProtein - meal.getProtein()));
-        }
-
-        if (meal.getCarbs() != null) {
-            double currentCarbs = dailyCarbsTotals.getOrDefault(day, 0.0);
-            dailyCarbsTotals.put(day, Math.max(0, currentCarbs - meal.getCarbs()));
-        }
-
-        if (meal.getFat() != null) {
-            double currentFat = dailyFatTotals.getOrDefault(day, 0.0);
-            dailyFatTotals.put(day, Math.max(0, currentFat - meal.getFat()));
-        }
-
-        // Update calories
         if (meal.getCalories() != null) {
-            double currentTarget = dailyCalorieTargets.getOrDefault(day, DEFAULT_DAILY_CALORIES);
-            dailyCalorieTargets.put(day, currentTarget + meal.getCalories());
+            double current = dailyCaloriesConsumed.getOrDefault(day, 0.0);
+            dailyCaloriesConsumed.put(day, Math.max(0, current - meal.getCalories()));
+        }
+        if (meal.getProtein() != null) {
+            double current = dailyProteinTotals.getOrDefault(day, 0.0);
+            dailyProteinTotals.put(day, Math.max(0, current - meal.getProtein()));
+        }
+        if (meal.getCarbs() != null) {
+            double current = dailyCarbsTotals.getOrDefault(day, 0.0);
+            dailyCarbsTotals.put(day, Math.max(0, current - meal.getCarbs()));
+        }
+        if (meal.getFat() != null) {
+            double current = dailyFatTotals.getOrDefault(day, 0.0);
+            dailyFatTotals.put(day, Math.max(0, current - meal.getFat()));
         }
     }
 
@@ -146,24 +119,24 @@ public class NutritionCalculator {
      * Format the calorie display for a day
      */
     public String[] formatCalorieDisplay(String day) {
-        double remainingCalories = dailyCalorieTargets.getOrDefault(day, DEFAULT_DAILY_CALORIES);
+        double target = dailyCalorieTargets.getOrDefault(day, DEFAULT_DAILY_CALORIES);
+        double consumed = dailyCaloriesConsumed.getOrDefault(day, 0.0);
+        double remaining = target - consumed;
+
         String displayValue;
         String displayLabel;
         String cssClass = "";
 
-        if (remainingCalories < 0) {
-            // Over budget - format with "Over" and red color
-            displayValue = String.valueOf(Math.abs((int) Math.round(remainingCalories)));
+        if (remaining < 0) {
+            displayValue = String.valueOf(Math.abs((int) Math.round(remaining)));
             displayLabel = "kcal Over";
             cssClass = "over";
-        } else if (remainingCalories <= 100) {
-            // Close to budget - format with orange warning color
-            displayValue = String.valueOf((int) Math.round(remainingCalories));
+        } else if (remaining <= 100) {
+            displayValue = String.valueOf((int) Math.round(remaining));
             displayLabel = "kcal Remaining";
             cssClass = "warning";
         } else {
-            // Under budget - default green color
-            displayValue = String.valueOf((int) Math.round(remainingCalories));
+            displayValue = String.valueOf((int) Math.round(remaining));
             displayLabel = "kcal Remaining";
         }
 
@@ -174,18 +147,18 @@ public class NutritionCalculator {
      * Format the macronutrient displays for a day
      */
     public String[] formatMacronutrientDisplays(String day) {
-        double proteinTotal = dailyProteinTotals.getOrDefault(day, 0.0);
-        double carbsTotal = dailyCarbsTotals.getOrDefault(day, 0.0);
-        double fatTotal = dailyFatTotals.getOrDefault(day, 0.0);
+        double protein = dailyProteinTotals.getOrDefault(day, 0.0);
+        double carbs = dailyCarbsTotals.getOrDefault(day, 0.0);
+        double fat = dailyFatTotals.getOrDefault(day, 0.0);
 
-        String proteinDisplay = String.format("%dg/%dg", Math.round(proteinTotal), (int) DEFAULT_PROTEIN_GOAL);
-        String proteinClass = proteinTotal >= DEFAULT_PROTEIN_GOAL ? "met" : "not-met";
+        String proteinDisplay = String.format("%dg/%dg", Math.round(protein), (int) DEFAULT_PROTEIN_GOAL);
+        String proteinClass = protein >= DEFAULT_PROTEIN_GOAL ? "met" : "not-met";
 
-        String carbsDisplay = String.format("%dg/%dg", Math.round(carbsTotal), (int) DEFAULT_CARBS_GOAL);
-        String carbsClass = carbsTotal >= DEFAULT_CARBS_GOAL ? "met" : "not-met";
+        String carbsDisplay = String.format("%dg/%dg", Math.round(carbs), (int) DEFAULT_CARBS_GOAL);
+        String carbsClass = carbs >= DEFAULT_CARBS_GOAL ? "met" : "not-met";
 
-        String fatDisplay = String.format("%dg/%dg", Math.round(fatTotal), (int) DEFAULT_FAT_GOAL);
-        String fatClass = fatTotal >= DEFAULT_FAT_GOAL ? "met" : "not-met";
+        String fatDisplay = String.format("%dg/%dg", Math.round(fat), (int) DEFAULT_FAT_GOAL);
+        String fatClass = fat >= DEFAULT_FAT_GOAL ? "met" : "not-met";
 
         return new String[] {
                 proteinDisplay, proteinClass,
@@ -197,6 +170,12 @@ public class NutritionCalculator {
     /**
      * Find a meal by its ID in a list of meals
      */
+
+    public void setAllDailyTargets(double calories) {
+        for (String day : dailyCalorieTargets.keySet()) {
+            dailyCalorieTargets.put(day, calories);
+        }
+    }
     private Meal findMealById(int id, List<Meal> meals) {
         for (Meal meal : meals) {
             if (meal.getId() == id) {
@@ -205,15 +184,14 @@ public class NutritionCalculator {
         }
         return null;
     }
-    public void setAllDailyTargets(double calories) {
-        for (String day : dailyCalorieTargets.keySet()) {
-            dailyCalorieTargets.put(day, calories);
-        }
-    }
-
     // Getters for each map
+
     public Map<String, Double> getDailyCalorieTargets() {
         return dailyCalorieTargets;
+    }
+
+    public Map<String, Double> getDailyCaloriesConsumed() {
+        return dailyCaloriesConsumed;
     }
 
     public Map<String, Double> getDailyProteinTotals() {

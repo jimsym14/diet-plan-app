@@ -8,6 +8,8 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import netscape.javascript.JSObject;
 import com.example.dietapp.model.SavefromDatabase;
+import javafx.application.Platform;
+
 
 
 public class Main extends Application {
@@ -41,8 +43,15 @@ public class Main extends Application {
 
                     // If we're on the meals page, load the meals
                     if (location.endsWith("meals.html")) {
-                        System.out.println("📋 On meals page, loading meals...");
-                        controller.loadMealsAndSendInitialData();
+                        System.out.println("📋 On meals page, scheduling delayed loading of meals...");
+                        new Thread(() -> {
+                            try {
+                                Thread.sleep(400); // ή 500 αν χρειαστεί
+                                Platform.runLater(() -> controller.loadMealsAndSendInitialData());
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }).start();
                     }
                 } catch (Exception e) {
                     System.err.println("❌ Error setting up JavaFX bridge: " + e.getMessage());
