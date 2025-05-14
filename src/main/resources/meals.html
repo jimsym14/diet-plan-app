@@ -103,9 +103,9 @@
         // Default nutrition targets
         let DEFAULT_DAILY_CALORIES = 2000;
         // Default daily calorie target
-        const DEFAULT_PROTEIN_GOAL = 120; // Default daily protein goal in grams
-        const DEFAULT_CARBS_GOAL = 250; // Default daily carbs goal in grams
-        const DEFAULT_FAT_GOAL = 65; // Default daily fat goal in grams
+        let DEFAULT_PROTEIN_GOAL = 120; // Default daily protein goal in grams
+        let DEFAULT_CARBS_GOAL = 250; // Default daily carbs goal in grams
+        let DEFAULT_FAT_GOAL = 65; // Default daily fat goal in grams
 
         // Initialize local selections for each day
         function initLocalSelections() {
@@ -414,8 +414,9 @@
             const proteinDisplay = document.querySelector('.macro-pill.protein .macro-value');
             if (proteinDisplay) {
                 proteinDisplay.classList.remove('met', 'not-met');
-                proteinDisplay.textContent = `${Math.round(totalProtein)}g/${DEFAULT_PROTEIN_GOAL}g`;
-                
+                proteinDisplay.textContent = `${Math.round(totalProtein)}g/${Math.round(DEFAULT_PROTEIN_GOAL)}g`;
+
+
                 if (totalProtein >= DEFAULT_PROTEIN_GOAL) {
                     proteinDisplay.classList.add('met');
                 } else {
@@ -427,7 +428,7 @@
             const carbsDisplay = document.querySelector('.macro-pill.carbs .macro-value');
             if (carbsDisplay) {
                 carbsDisplay.classList.remove('met', 'not-met');
-                carbsDisplay.textContent = `${Math.round(totalCarbs)}g/${DEFAULT_CARBS_GOAL}g`;
+                carbsDisplay.textContent = `${Math.round(totalCarbs)}g/${Math.round(DEFAULT_CARBS_GOAL)}g`;
                 
                 if (totalCarbs >= DEFAULT_CARBS_GOAL) {
                     carbsDisplay.classList.add('met');
@@ -440,7 +441,7 @@
             const fatDisplay = document.querySelector('.macro-pill.fat .macro-value');
             if (fatDisplay) {
                 fatDisplay.classList.remove('met', 'not-met');
-                fatDisplay.textContent = `${Math.round(totalFat)}g/${DEFAULT_FAT_GOAL}g`;
+                fatDisplay.textContent = `${Math.round(totalFat)}g/${Math.round(DEFAULT_FAT_GOAL)}g`;
                 
                 if (totalFat >= DEFAULT_FAT_GOAL) {
                     fatDisplay.classList.add('met');
@@ -637,7 +638,10 @@
         }
 
         // Function called by Java when it provides pre-generated HTML
-        function setupPageWithHtml(initialDay, initialSelectedIds, targetCalories) {
+        function setupPageWithHtml(initialDay, initialSelectedIds, targetCalories, proteinGoal, carbsGoal, fatGoal) {
+            if (!isNaN(proteinGoal)) DEFAULT_PROTEIN_GOAL = proteinGoal;
+            if (!isNaN(carbsGoal)) DEFAULT_CARBS_GOAL = carbsGoal;
+            if (!isNaN(fatGoal)) DEFAULT_FAT_GOAL = fatGoal;
             if (targetCalories && !isNaN(targetCalories)) {
                 DEFAULT_DAILY_CALORIES = targetCalories;
                 console.log("🎯 Default daily calories set from Java:", DEFAULT_DAILY_CALORIES);

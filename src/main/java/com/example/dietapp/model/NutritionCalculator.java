@@ -13,6 +13,22 @@ public class NutritionCalculator {
     public static final double DEFAULT_PROTEIN_GOAL = 120.0;
     public static final double DEFAULT_CARBS_GOAL = 250.0;
     public static final double DEFAULT_FAT_GOAL = 65.0;
+    public double getProteinGoal() {
+        return proteinGoal;
+    }
+
+    public double getCarbsGoal() {
+        return carbsGoal;
+    }
+
+    public double getFatGoal() {
+        return fatGoal;
+    }
+
+    private double proteinGoal = DEFAULT_PROTEIN_GOAL;
+    private double carbsGoal = DEFAULT_CARBS_GOAL;
+    private double fatGoal = DEFAULT_FAT_GOAL;
+
 
     private final Map<String, Double> dailyCalorieTargets;
     private final Map<String, Double> dailyCaloriesConsumed;
@@ -151,14 +167,15 @@ public class NutritionCalculator {
         double carbs = dailyCarbsTotals.getOrDefault(day, 0.0);
         double fat = dailyFatTotals.getOrDefault(day, 0.0);
 
-        String proteinDisplay = String.format("%dg/%dg", Math.round(protein), (int) DEFAULT_PROTEIN_GOAL);
-        String proteinClass = protein >= DEFAULT_PROTEIN_GOAL ? "met" : "not-met";
+        String proteinDisplay = String.format("%dg/%dg", Math.round(protein), (int) proteinGoal);
+        String proteinClass = protein >= proteinGoal ? "met" : "not-met";
 
-        String carbsDisplay = String.format("%dg/%dg", Math.round(carbs), (int) DEFAULT_CARBS_GOAL);
-        String carbsClass = carbs >= DEFAULT_CARBS_GOAL ? "met" : "not-met";
+        String carbsDisplay = String.format("%dg/%dg", Math.round(carbs), (int) carbsGoal);
+        String carbsClass = carbs >= carbsGoal ? "met" : "not-met";
 
-        String fatDisplay = String.format("%dg/%dg", Math.round(fat), (int) DEFAULT_FAT_GOAL);
-        String fatClass = fat >= DEFAULT_FAT_GOAL ? "met" : "not-met";
+        String fatDisplay = String.format("%dg/%dg", Math.round(fat), (int) fatGoal);
+        String fatClass = fat >= fatGoal ? "met" : "not-met";
+
 
         return new String[] {
                 proteinDisplay, proteinClass,
@@ -176,6 +193,12 @@ public class NutritionCalculator {
             dailyCalorieTargets.put(day, calories);
         }
     }
+    public void setMacroGoals(double protein, double carbs, double fat) {
+        this.proteinGoal = protein;
+        this.carbsGoal = carbs;
+        this.fatGoal = fat;
+    }
+
     private Meal findMealById(int id, List<Meal> meals) {
         for (Meal meal : meals) {
             if (meal.getId() == id) {

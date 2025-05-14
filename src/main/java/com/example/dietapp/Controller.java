@@ -236,13 +236,22 @@ public class Controller {
         String initialSelectedIdsJson = new Gson().toJson(initialSelectedIds);
 
         double dailyTarget = dietPlan.getDailyTargetCalories();
+        double proteinGoal = nutritionCalculator.getProteinGoal();
+        double carbsGoal = nutritionCalculator.getCarbsGoal();
+        double fatGoal = nutritionCalculator.getFatGoal();
+
         String script = String.format(
-                "document.getElementById('mealContainer').innerHTML = `%s`; setupPageWithHtml('%s', %s, %f);",
-                mealCardsHtml.replace("`", "\\`"), // Escape backticks in HTML
+                "document.getElementById('mealContainer').innerHTML = `%s`; " +
+                        "setupPageWithHtml('%s', %s, %f, %f, %f, %f);",
+                mealCardsHtml.replace("`", "\\`"),
                 currentDay,
                 initialSelectedIdsJson,
-                dailyTarget
+                dailyTarget,
+                proteinGoal,
+                carbsGoal,
+                fatGoal
         );
+
 
         Platform.runLater(() -> {
             try {
@@ -411,6 +420,16 @@ public class Controller {
             double targetCalories = CalorieCalculator.calculateCalories(user);
             dietPlan.setDailyTargetCalories(targetCalories);
             nutritionCalculator.setAllDailyTargets(targetCalories);
+            // Υπολογισμός στόχων μακροθρεπτικών με βάση τις συνολικές θερμίδες
+            double proteinGoal = (targetCalories * 0.20) / 4; // 20% protein (4 kcal per g)
+            double carbsGoal = (targetCalories * 0.50) / 4;   // 50% carbs (4 kcal per g)
+            double fatGoal = (targetCalories * 0.30) / 9;     // 30% fat (9 kcal per g)
+
+            nutritionCalculator.setMacroGoals(proteinGoal, carbsGoal, fatGoal);
+
+            System.out.println("🎯 Protein Goal: " + Math.round(proteinGoal) + "g");
+            System.out.println("🎯 Carbs Goal: " + Math.round(carbsGoal) + "g");
+            System.out.println("🎯 Fat Goal: " + Math.round(fatGoal) + "g");
 
             System.out.println(" Υπολογισμένες θερμίδες χρήστη: " + targetCalories);
             System.out.println(" Ελεγχος στόχων ανά ημέρα:");
