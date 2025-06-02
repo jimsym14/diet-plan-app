@@ -150,10 +150,10 @@ public class Controller {
             System.out.println("➕ Meal added: ID " + mealId + " to day " + day);
         }
 
-        // ✅ Πάντα υπολογίζουμε από την αρχή όλη τη διατροφή για τη μέρα
+        //  Πάντα υπολογίζουμε από την αρχή όλη τη διατροφή για τη μέρα
         nutritionCalculator.calculateNutritionForDay(day, dietPlan.getMealsForDay(day), allMealsCache);
 
-        // ✅ Ενημέρωση UI
+        //  Ενημέρωση UI
         updateNutritionDisplays(day);
     }
 

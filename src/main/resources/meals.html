@@ -604,24 +604,59 @@
                     // Java will call back updateSelectedCards
                 });
             });
+// Add click handler for Finish Plan button
+            const finishBtn = document.querySelector('.finish-btn');
+            if (finishBtn) {
+                finishBtn.addEventListener('click', () => {
+                    if (!allMealsData || allMealsData.length === 0) {
+                        extractMealDataFromDOM();
+                    }
+                    const planByName = {};
 
+                    Object.entries(localSelections).forEach(([day, ids]) => {
+                        planByName[day] = ids.map(id => {
+                            const meal = allMealsData.find(m => m.id === id);
+                            return meal && meal.name ? meal.name : `Meal ${id}`;
+                        });
+                    });
+
+                    const planSummary = encodeURIComponent(JSON.stringify(planByName));
+                    window.location.href = `finalplan.html?plan=${planSummary}`;
+                });
+            }
             // Add click handler for meal cards using event delegation
             const mealContainer = document.getElementById('mealContainer');
             if (mealContainer) {
                 mealContainer.addEventListener('click', (e) => {
                     const card = e.target.closest('.meal-card');
-                    if (card) {
-                        const mealId = parseInt(card.dataset.mealId, 10);
-                        if (!isNaN(mealId)) {
-                            // Toggle visual state immediately
-                            card.classList.toggle('selected');
-                            showDebug(`Meal card clicked: ID ${mealId}, Day: ${currentDay}`);
-                            // Tell Java about the toggle
-                            sendMessageToJava({ action: 'toggleMealSelection', day: currentDay, mealId: mealId });
-                        } else {
-                            showError('Clicked card is missing a valid meal ID.');
-                        }
+                    if (!card) return;
+
+                    const mealId = parseInt(card.dataset.mealId, 10);
+                    if (isNaN(mealId)) {
+                        showError('Clicked card is missing a valid meal ID.');
+                        return;
                     }
+
+                    // Τρέχουσα λίστα γευμάτων για τη μέρα
+                    let selected = localSelections[currentDay] || [];
+
+                    // Αν έχει ήδη επιλεγεί, αφαιρούμε
+                    if (selected.includes(mealId)) {
+                        selected = selected.filter(id => id !== mealId);
+                        card.classList.remove('selected');
+                        showDebug(`Deselected meal ${mealId} for ${currentDay}`);
+                    } else {
+                        selected.push(mealId);
+                        card.classList.add('selected');
+                        showDebug(`Selected meal ${mealId} for ${currentDay}`);
+                    }
+
+                    // Αποθηκεύουμε το updated selection
+                    localSelections[currentDay] = selected;
+
+                    // Ενημέρωση θερμίδων και macros
+                    updateDailyCaloriesDisplay();
+                    updateMacroNutrientDisplays();
                 });
             } else {
                 showError('Meal container not found for event listener setup.');
@@ -696,59 +731,57 @@
         function extractMealDataFromDOM() {
             showDebug('Extracting meal data from pre-generated DOM elements');
             try {
-                allMealsData = [];
+                allMealsData = []; // Καθαρίζουμε το array
                 const mealCards = document.querySelectorAll('.meal-card');
-                
+
                 mealCards.forEach(card => {
                     const mealId = parseInt(card.dataset.mealId, 10);
                     const nameElement = card.querySelector('h3');
                     const caloriesElement = card.querySelector('.stats-row .stats-text:first-child');
                     const nutrientsElement = card.querySelector('.nutrients');
-                    
-                    if (mealId && nameElement) {
-                        // Basic meal data
+
+                    if (!isNaN(mealId) && nameElement) {
                         const meal = {
                             id: mealId,
-                            name: nameElement.textContent
+                            name: nameElement.textContent.trim()
                         };
-                        
-                        // Extract calories
+
+                        // Ανάγνωση θερμίδων
                         if (caloriesElement && caloriesElement.textContent.includes('kcal')) {
-                            const caloriesText = caloriesElement.textContent.trim();
-                            const caloriesMatch = caloriesText.match(/(\d+)/);
-                            if (caloriesMatch) {
-                                meal.calories = parseInt(caloriesMatch[1], 10);
+                            const match = caloriesElement.textContent.match(/(\d+)/);
+                            if (match) {
+                                meal.calories = parseInt(match[1], 10);
                             }
                         }
-                        
-                        // Extract macros if available
+
+                        // Ανάγνωση macros
                         if (nutrientsElement && !nutrientsElement.classList.contains('unavailable')) {
                             const nutrientsText = nutrientsElement.textContent;
-                            
+
                             const proteinMatch = nutrientsText.match(/Protein:\s*([\d.]+)g/);
                             if (proteinMatch) {
                                 meal.protein = parseFloat(proteinMatch[1]);
                             }
-                            
+
                             const carbsMatch = nutrientsText.match(/Carbs:\s*([\d.]+)g/);
                             if (carbsMatch) {
                                 meal.carbs = parseFloat(carbsMatch[1]);
                             }
-                            
+
                             const fatMatch = nutrientsText.match(/Fat:\s*([\d.]+)g/);
                             if (fatMatch) {
                                 meal.fat = parseFloat(fatMatch[1]);
                             }
                         }
-                        
-                        // Add to our data array
+
                         allMealsData.push(meal);
                     }
                 });
-                
-                showDebug(`Extracted data for ${allMealsData.length} meals from DOM`);
+
+                showDebug(`✅ Extracted ${allMealsData.length} meals from DOM`);
+                console.log("📦 allMealsData:", allMealsData);
             } catch (e) {
-                showError(`Failed to extract meal data from DOM: ${e.message}`);
+                showError(`❌ Failed to extract meal data from DOM: ${e.message}`);
                 console.error(e);
             }
         }

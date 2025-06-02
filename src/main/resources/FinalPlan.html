@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Final Diet Plan</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background-color: #f6fff8;
+            color: #1e4028;
+        }
+
+        .main-content {
+            padding: 30px;
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        .main-title {
+            text-align: center;
+            font-size: 2.2em;
+            font-weight: 600;
+            margin-bottom: 40px;
+        }
+
+        .meal-container {
+            margin-bottom: 40px;
+        }
+
+        .meal-container h2 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            margin-left: 15px;
+            color: #1e4028;
+        }
+
+        .meal-card {
+            background-color: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin: 10px;
+            display: inline-block;
+            width: 220px;
+            vertical-align: top;
+            transition: transform 0.2s ease;
+        }
+
+        .meal-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .meal-card h3 {
+            margin-top: 0;
+            font-size: 1.1em;
+        }
+
+        .meal-card p {
+            margin: 5px 0 0 0;
+            font-size: 0.9em;
+            color: #444;
+        }
+
+        .back-button {
+            display: block;
+            margin: 40px auto 0;
+            padding: 12px 24px;
+            font-size: 1em;
+            border: none;
+            background-color: #1e4028;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .back-button:hover {
+            background-color: #2e6040;
+        }
+    </style>
+</head>
+<body>
+<h1>Your Weekly Meal Plan</h1>
+<div id="plan-container"></div>
+
+<script>
+    const container = document.getElementById('plan-container');
+    const params = new URLSearchParams(window.location.search);
+    const planRaw = params.get('plan');
+
+    if (planRaw) {
+        try {
+            const plan = JSON.parse(decodeURIComponent(planRaw));
+            const days = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+            const dayNames = {
+                MO: 'Monday', TU: 'Tuesday', WE: 'Wednesday',
+                TH: 'Thursday', FR: 'Friday', SA: 'Saturday', SU: 'Sunday'
+            };
+
+            days.forEach(day => {
+                const meals = plan[day] || [];
+                const section = document.createElement('div');
+                section.className = 'day-section';
+
+                const title = document.createElement('div');
+                title.className = 'day-title';
+                title.textContent = dayNames[day];
+                section.appendChild(title);
+
+                if (meals.length > 0) {
+                    const ul = document.createElement('ul');
+                    ul.className = 'meal-list';
+                    meals.forEach(meal => {
+                        const li = document.createElement('li');
+                        li.textContent = typeof meal === 'string' ? meal : '[Unnamed meal]';
+                        ul.appendChild(li);
+                    });
+                    section.appendChild(ul);
+                } else {
+                    const p = document.createElement('p');
+                    p.className = 'no-meals';
+                    p.textContent = 'No meals selected.';
+                    section.appendChild(p);
+                }
+
+                container.appendChild(section);
+            });
+
+        } catch (e) {
+            container.innerHTML = "<p style='color:red;'>Could not load meal plan data.</p>";
+        }
+    } else {
+        container.innerHTML = "<p>No meal plan found.</p>";
+    }
+</script>
+</body>
+</html>
