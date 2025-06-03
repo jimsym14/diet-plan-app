@@ -18,7 +18,7 @@ public class MealService {
             }
 
         } catch (SQLException e) {
-            System.out.println("❌ Σφάλμα στο query: " + e.getMessage());
+            System.out.println(" Σφάλμα στο query: " + e.getMessage());
         }
     }
     public static void printTables() {
@@ -28,13 +28,13 @@ public class MealService {
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
-            System.out.println("📋 Πίνακες στη βάση:");
+            System.out.println(" Πίνακες στη βάση:");
             while (rs.next()) {
                 System.out.println("• " + rs.getString("name"));
             }
 
         } catch (SQLException e) {
-            System.out.println("❌ Σφάλμα στο query: " + e.getMessage());
+            System.out.println(" Σφάλμα στο query: " + e.getMessage());
         }
     }
 }

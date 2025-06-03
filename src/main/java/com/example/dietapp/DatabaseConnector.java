@@ -11,7 +11,7 @@ public class DatabaseConnector {
         try {
             return DriverManager.getConnection(DB_URL);
         } catch (SQLException e) {
-            System.out.println("❌ Σφάλμα σύνδεσης: " + e.getMessage());
+            System.out.println(" Σφάλμα σύνδεσης: " + e.getMessage());
             return null;
         }
     }

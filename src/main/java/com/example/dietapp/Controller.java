@@ -50,7 +50,7 @@ public class Controller {
     }
 
     public void handleMessage(String message) {
-        System.out.println("📨 Received message from JavaScript: " + message);
+        System.out.println(" Received message from JavaScript: " + message);
         try {
             JsonObject jsonObject = JsonParser.parseString(message).getAsJsonObject();
             String action = jsonObject.get("action").getAsString();
@@ -91,7 +91,7 @@ public class Controller {
                     System.out.println("Unknown action: " + action);
             }
         } catch (Exception e) {
-            System.err.println("❌ Error parsing or handling message: " + message + " | Error: " + e.getMessage());
+            System.err.println(" Error parsing or handling message: " + message + " | Error: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -122,7 +122,7 @@ public class Controller {
             filterHasValidNutrition = filters.get("hasValidNutrition").getAsBoolean();
         }
 
-        System.out.println("🔍 Filters updated: " +
+        System.out.println(" Filters updated: " +
                 "Vegan: " + filterVegan +
                 ", Vegetarian: " + filterVegetarian +
                 ", GF: " + filterGlutenFree +
@@ -134,7 +134,7 @@ public class Controller {
 
     private void selectDay(String day) {
         this.currentDay = day;
-        System.out.println("🗓️ Day selected: " + day);
+        System.out.println(" Day selected: " + day);
         updateMealCardSelectionUI(day);
         updateNutritionDisplays(day);
     }
@@ -144,10 +144,10 @@ public class Controller {
 
         if (selectedMeals.contains(mealId)) {
             dietPlan.removeMealFromDay(day, mealId);
-            System.out.println("➖ Meal removed: ID " + mealId + " from day " + day);
+            System.out.println(" Meal removed: ID " + mealId + " from day " + day);
         } else {
             dietPlan.addMealToDay(day, mealId);
-            System.out.println("➕ Meal added: ID " + mealId + " to day " + day);
+            System.out.println(" Meal added: ID " + mealId + " to day " + day);
         }
 
         //  Πάντα υπολογίζουμε από την αρχή όλη τη διατροφή για τη μέρα
@@ -192,9 +192,9 @@ public class Controller {
         Platform.runLater(() -> {
             try {
                 webView.getEngine().executeScript(script);
-                System.out.println("🔢 Updated calorie display for day " + day);
+                System.out.println(" Updated calorie display for day " + day);
             } catch (Exception e) {
-                System.err.println("❌ Failed to update calorie display: " + e.getMessage());
+                System.err.println(" Failed to update calorie display: " + e.getMessage());
             }
         });
     }
@@ -202,11 +202,11 @@ public class Controller {
     // Renamed from showAllMealsPage to loadMealsAndSendInitialData
     public void loadMealsAndSendInitialData() {
         try {
-            System.out.println("🔍 Loading meals from database...");
+            System.out.println(" Loading meals from database...");
             if (allMealsCache == null) { // Load only if cache is empty
                 allMealsCache = getAllMeals();
             }
-            System.out.println("📋 Found " + allMealsCache.size() + " meals");
+            System.out.println(" Found " + allMealsCache.size() + " meals");
 
             // Calculate initial nutrition values using our calculator
             nutritionCalculator.calculateNutritionForDay(currentDay, dietPlan.getMealsForDay(currentDay),
@@ -215,17 +215,17 @@ public class Controller {
             sendInitialData(); // Send meals and initial day's selections
 
         } catch (SQLException e) {
-            System.err.println("❌ Database error: " + e.getMessage());
+            System.err.println(" Database error: " + e.getMessage());
             e.printStackTrace();
         } catch (Exception e) {
-            System.err.println("❌ Unexpected error: " + e.getMessage());
+            System.err.println(" Unexpected error: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     private void sendInitialData() {
         if (allMealsCache == null) {
-            System.err.println("❌ Meal cache is empty, cannot send initial data.");
+            System.err.println(" Meal cache is empty, cannot send initial data.");
             return;
         }
 
@@ -256,12 +256,12 @@ public class Controller {
         Platform.runLater(() -> {
             try {
                 webView.getEngine().executeScript(script);
-                System.out.println("✅ Initial page data sent successfully for day: " + currentDay);
+                System.out.println(" Initial page data sent successfully for day: " + currentDay);
 
                 // Update nutritional displays
                 updateNutritionDisplays(currentDay);
             } catch (Exception e) {
-                System.err.println("❌ Failed to execute setup script: " + e.getMessage());
+                System.err.println(" Failed to execute setup script: " + e.getMessage());
                 e.printStackTrace();
             }
         });
@@ -276,9 +276,9 @@ public class Controller {
         Platform.runLater(() -> {
             try {
                 webView.getEngine().executeScript(script);
-                System.out.println("🔄 Updated card selections for day: " + day);
+                System.out.println(" Updated card selections for day: " + day);
             } catch (Exception e) {
-                System.err.println("❌ Failed to execute updateSelectedCards script: " + e.getMessage());
+                System.err.println(" Failed to execute updateSelectedCards script: " + e.getMessage());
             }
         });
     }
@@ -337,9 +337,9 @@ public class Controller {
         Platform.runLater(() -> {
             try {
                 webView.getEngine().executeScript(script);
-                System.out.println("📊 Updated macronutrient displays for day " + day);
+                System.out.println(" Updated macronutrient displays for day " + day);
             } catch (Exception e) {
-                System.err.println("❌ Failed to update macronutrient displays: " + e.getMessage());
+                System.err.println(" Failed to update macronutrient displays: " + e.getMessage());
             }
         });
     }
@@ -347,7 +347,7 @@ public class Controller {
     // Apply search and filters then update UI
     private void applySearchAndFilters() {
         if (allMealsCache == null) {
-            System.err.println("❌ Meal cache is empty, cannot perform search/filter.");
+            System.err.println(" Meal cache is empty, cannot perform search/filter.");
             return;
         }
 
@@ -363,7 +363,7 @@ public class Controller {
                 filterMinProtein,
                 filterHasValidNutrition);
 
-        System.out.println("🔍 Search/filter found " + filteredMeals.size() + " meals");
+        System.out.println(" Search/filter found " + filteredMeals.size() + " meals");
 
         // Generate HTML for filtered meals
         String filteredMealsHtml = MealCardGenerator.generateAllMealCardsHtml(filteredMeals);
@@ -427,9 +427,9 @@ public class Controller {
 
             nutritionCalculator.setMacroGoals(proteinGoal, carbsGoal, fatGoal);
 
-            System.out.println("🎯 Protein Goal: " + Math.round(proteinGoal) + "g");
-            System.out.println("🎯 Carbs Goal: " + Math.round(carbsGoal) + "g");
-            System.out.println("🎯 Fat Goal: " + Math.round(fatGoal) + "g");
+            System.out.println(" Protein Goal: " + Math.round(proteinGoal) + "g");
+            System.out.println(" Carbs Goal: " + Math.round(carbsGoal) + "g");
+            System.out.println(" Fat Goal: " + Math.round(fatGoal) + "g");
 
             System.out.println(" Υπολογισμένες θερμίδες χρήστη: " + targetCalories);
             System.out.println(" Ελεγχος στόχων ανά ημέρα:");
@@ -437,7 +437,7 @@ public class Controller {
                 System.out.println("   " + day + " ➜ " + cal + " kcal");
             });
 
-            // ➕ Αν δεν έχουν φορτωθεί γεύματα, τα φέρνουμε
+            //  Αν δεν έχουν φορτωθεί γεύματα, τα φέρνουμε
             if (allMealsCache == null) {
                 try {
                     allMealsCache = getAllMeals();
@@ -446,17 +446,17 @@ public class Controller {
                 }
             }
 
-            // ➕ Υπολογισμός μακροθρεπτικών για την τρέχουσα μέρα
+            //  Υπολογισμός μακροθρεπτικών για την τρέχουσα μέρα
             nutritionCalculator.calculateNutritionForDay(currentDay, dietPlan.getMealsForDay(currentDay), allMealsCache);
 
             System.out.println(" Ολοκληρώθηκε η καταγραφή & υπολογισμός θερμίδων");
 
         } catch (Exception e) {
-            System.err.println("❌ Σφάλμα κατά την επεξεργασία δεδομένων φόρμας: " + e.getMessage());
+            System.err.println(" Σφάλμα κατά την επεξεργασία δεδομένων φόρμας: " + e.getMessage());
             e.printStackTrace();
         }
 
-        // ➕ Επιστροφή αποτελέσματος στη JavaScript
+        //  Επιστροφή αποτελέσματος στη JavaScript
         final String safeErrorMessage = errorMessage[0].replace("\"", "\\\"");
         final String resultJson = String.format("{ \"valid\": %b, \"errorMessage\": \"%s\" }", isValid[0], safeErrorMessage);
         final String script = String.format("handleFormValidationResult(%s);", resultJson);
@@ -464,9 +464,9 @@ public class Controller {
         Platform.runLater(() -> {
             try {
                 webView.getEngine().load(getClass().getResource("/meals.html").toExternalForm());
-                System.out.println("🌐 Loading meals.html after form validation.");
+                System.out.println(" Loading meals.html after form validation.");
             } catch (Exception e) {
-                System.err.println("❌ Failed to load meals.html: " + e.getMessage());
+                System.err.println(" Failed to load meals.html: " + e.getMessage());
                 e.printStackTrace();
             }
         });
@@ -474,7 +474,7 @@ public class Controller {
 
     private List<Meal> getAllMeals() throws SQLException {
         File dbFile = new File("mealsdb.sqlite");
-        System.out.println("💾 Database path: " + dbFile.getAbsolutePath());
+        System.out.println(" Database path: " + dbFile.getAbsolutePath());
 
         try (Connection conn = DriverManager.getConnection(DB_URL);
                 Statement stmt = conn.createStatement();

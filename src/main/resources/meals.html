@@ -679,9 +679,9 @@
             if (!isNaN(fatGoal)) DEFAULT_FAT_GOAL = fatGoal;
             if (targetCalories && !isNaN(targetCalories)) {
                 DEFAULT_DAILY_CALORIES = targetCalories;
-                console.log("🎯 Default daily calories set from Java:", DEFAULT_DAILY_CALORIES);
+                console.log(" Default daily calories set from Java:", DEFAULT_DAILY_CALORIES);
             } else {
-                console.warn("⚠️ No target calories received, using default 2000 kcal");
+                console.warn(" No target calories received, using default 2000 kcal");
             }
             showDebug(`Setting up page with pre-generated HTML for day: ${initialDay}`);
             
@@ -778,10 +778,10 @@
                     }
                 });
 
-                showDebug(`✅ Extracted ${allMealsData.length} meals from DOM`);
-                console.log("📦 allMealsData:", allMealsData);
+                showDebug(`Extracted ${allMealsData.length} meals from DOM`);
+                console.log(" allMealsData:", allMealsData);
             } catch (e) {
-                showError(`❌ Failed to extract meal data from DOM: ${e.message}`);
+                showError(` Failed to extract meal data from DOM: ${e.message}`);
                 console.error(e);
             }
         }

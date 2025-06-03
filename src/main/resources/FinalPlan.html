@@ -4,73 +4,90 @@
     <meta charset="UTF-8">
     <title>Final Diet Plan</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             font-family: 'Poppins', sans-serif;
-            background-color: #f6fff8;
+            background-color: #d2f3d1;
             color: #1e4028;
         }
 
         .main-content {
-            padding: 30px;
-            max-width: 1000px;
+            padding: 40px;
+            max-width: 1200px;
             margin: auto;
         }
 
-        .main-title {
-            text-align: center;
+        h1.main-title {
             font-size: 2.2em;
             font-weight: 600;
-            margin-bottom: 40px;
+            color: #1e4028;
+            margin: 0 auto 50px auto;
+            width: fit-content;
+            text-align: center;
         }
 
-        .meal-container {
-            margin-bottom: 40px;
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
         }
 
-        .meal-container h2 {
-            font-size: 1.5em;
-            margin-bottom: 20px;
-            margin-left: 15px;
+        .row.single {
+            justify-content: center;
+        }
+
+        .day-section {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(30, 64, 40, 0.1);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            backdrop-filter: blur(4px);
+        }
+
+        .day-title {
+            font-size: 1.4em;
+            margin-bottom: 15px;
             color: #1e4028;
         }
 
-        .meal-card {
-            background-color: white;
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            margin: 10px;
-            display: inline-block;
-            width: 220px;
-            vertical-align: top;
-            transition: transform 0.2s ease;
+        ul.meal-list {
+            list-style: none;
+            padding-left: 0;
         }
 
-        .meal-card:hover {
-            transform: translateY(-5px);
+        ul.meal-list li {
+            background: #e6f4e6;
+            padding: 10px 14px;
+            margin: 6px 0;
+            border-left: 5px solid #4caf50;
+            border-radius: 6px;
+            font-size: 1em;
         }
 
-        .meal-card h3 {
-            margin-top: 0;
-            font-size: 1.1em;
-        }
-
-        .meal-card p {
-            margin: 5px 0 0 0;
-            font-size: 0.9em;
-            color: #444;
+        .no-meals {
+            font-style: italic;
+            color: #888;
+            font-size: 0.95em;
         }
 
         .back-button {
             display: block;
-            margin: 40px auto 0;
+            margin: 50px auto 0;
             padding: 12px 24px;
-            font-size: 1em;
-            border: none;
             background-color: #1e4028;
             color: white;
+            border: none;
             border-radius: 8px;
+            font-size: 1em;
             cursor: pointer;
             transition: background-color 0.2s ease;
         }
@@ -81,7 +98,8 @@
     </style>
 </head>
 <body>
-<h1>Your Weekly Meal Plan</h1>
+<h1 class="main-title">Your Weekly Meal Plan</h1>
+
 <div id="plan-container"></div>
 
 <script>
@@ -92,40 +110,49 @@
     if (planRaw) {
         try {
             const plan = JSON.parse(decodeURIComponent(planRaw));
-            const days = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+            const pairs = [['MO', 'TU'], ['WE', 'TH'], ['FR', 'SA'], ['SU']];
             const dayNames = {
                 MO: 'Monday', TU: 'Tuesday', WE: 'Wednesday',
                 TH: 'Thursday', FR: 'Friday', SA: 'Saturday', SU: 'Sunday'
             };
 
-            days.forEach(day => {
-                const meals = plan[day] || [];
-                const section = document.createElement('div');
-                section.className = 'day-section';
+            pairs.forEach(pair => {
+                const row = document.createElement('div');
+                row.className = 'row';
+                if (pair.length === 1) row.classList.add('single');
 
-                const title = document.createElement('div');
-                title.className = 'day-title';
-                title.textContent = dayNames[day];
-                section.appendChild(title);
+                pair.forEach(day => {
+                    const meals = plan[day] || [];
+                    const section = document.createElement('div');
+                    section.className = 'day-section';
 
-                if (meals.length > 0) {
-                    const ul = document.createElement('ul');
-                    ul.className = 'meal-list';
-                    meals.forEach(meal => {
-                        const li = document.createElement('li');
-                        li.textContent = typeof meal === 'string' ? meal : '[Unnamed meal]';
-                        ul.appendChild(li);
-                    });
-                    section.appendChild(ul);
-                } else {
-                    const p = document.createElement('p');
-                    p.className = 'no-meals';
-                    p.textContent = 'No meals selected.';
-                    section.appendChild(p);
-                }
+                    const title = document.createElement('div');
+                    title.className = 'day-title';
+                    title.textContent = dayNames[day];
+                    section.appendChild(title);
 
-                container.appendChild(section);
+                    if (meals.length > 0) {
+                        const ul = document.createElement('ul');
+                        ul.className = 'meal-list';
+                        meals.forEach(meal => {
+                            const li = document.createElement('li');
+                            li.textContent = typeof meal === 'string' ? meal : '[Unnamed meal]';
+                            ul.appendChild(li);
+                        });
+                        section.appendChild(ul);
+                    } else {
+                        const p = document.createElement('p');
+                        p.className = 'no-meals';
+                        p.textContent = 'No meals selected.';
+                        section.appendChild(p);
+                    }
+
+                    row.appendChild(section);
+                });
+
+                container.appendChild(row);
             });
+
 
         } catch (e) {
             container.innerHTML = "<p style='color:red;'>Could not load meal plan data.</p>";

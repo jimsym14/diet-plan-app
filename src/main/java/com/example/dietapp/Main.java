@@ -31,9 +31,8 @@ public class Main extends Application {
                     String location = webView.getEngine().getLocation();
 
                     // Set up the bridge
-                    System.out.println("🌉 Setting up JavaFX bridge...");
-                    System.out.println("χψωγηξιθυτφδφωγβηξγγη");
-                    System.out.println("γβηφη");
+                    System.out.println(" Setting up JavaFX bridge...");
+
                     JSObject window = (JSObject) webView.getEngine().executeScript("window");
                     window.setMember("javaConnector", controller);
                     webView.getEngine().executeScript(
@@ -41,11 +40,11 @@ public class Main extends Application {
                                     "else { window.bridge = { postMessage: function(msg) { javaConnector.handleMessage(msg); } }; "
                                     +
                                     "console.log('Bridge created successfully'); }");
-                    System.out.println("✅ JavaFX bridge setup complete");
+                    System.out.println(" JavaFX bridge setup complete");
 
                     // If we're on the meals page, load the meals
                     if (location.endsWith("meals.html")) {
-                        System.out.println("📋 On meals page, scheduling delayed loading of meals...");
+                        System.out.println(" On meals page, scheduling delayed loading of meals...");
                         new Thread(() -> {
                             try {
                                 Thread.sleep(400); // ή 500 αν χρειαστεί
@@ -56,7 +55,7 @@ public class Main extends Application {
                         }).start();
                     }
                 } catch (Exception e) {
-                    System.err.println("❌ Error setting up JavaFX bridge: " + e.getMessage());
+                    System.err.println(" Error setting up JavaFX bridge: " + e.getMessage());
                     e.printStackTrace();
                 }
             }

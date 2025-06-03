@@ -33,10 +33,10 @@ public class SavefromDatabase {
             pstmt.setInt(11, user.getMealsPerDay());
 
             pstmt.executeUpdate();
-            System.out.println("✅ Ο χρήστης αποθηκεύτηκε με επιτυχία!");
+            System.out.println(" Ο χρήστης αποθηκεύτηκε με επιτυχία!");
 
         } catch (SQLException e) {
-            System.out.println("❌ Σφάλμα κατά την αποθήκευση: " + e.getMessage());
+            System.out.println(" Σφάλμα κατά την αποθήκευση: " + e.getMessage());
         }
     }
     public static List<User> getAllUsers() {
@@ -67,7 +67,7 @@ public class SavefromDatabase {
             }
 
         } catch (SQLException e) {
-            System.err.println("❌ Σφάλμα κατά την ανάγνωση χρηστών: " + e.getMessage());
+            System.err.println(" Σφάλμα κατά την ανάγνωση χρηστών: " + e.getMessage());
         }
 
         return users;
@@ -79,13 +79,13 @@ public class SavefromDatabase {
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
-            System.out.println("📋 Καταχωρημένοι χρήστες:");
+            System.out.println(" Καταχωρημένοι χρήστες:");
             while (rs.next()) {
                 System.out.println("- " + rs.getString("name") + ", Email: " + rs.getString("email"));
             }
 
         } catch (SQLException e) {
-            System.out.println("❌ Σφάλμα κατά την ανάγνωση χρηστών: " + e.getMessage());
+            System.out.println(" Σφάλμα κατά την ανάγνωση χρηστών: " + e.getMessage());
         }
     }
 
