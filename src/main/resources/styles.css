@@ -206,14 +206,79 @@ sidebar ul {
     filter: drop-shadow(0 0 4px rgba(0,0,0,0.1));
 }
 
-.fruit1 { top: 5%; left: 60%; animation-delay: 0s; }
-.fruit2 { top: 25%; left: 10%; opacity: 0.5; animation-delay: 2s; }
-.fruit3 { top: 65%; left: 5%; opacity: 0.5; animation-delay: 4s; }
-.fruit4 { top: 3%; left: 5%; opacity: 0.3; animation-delay: 1s; }
-.fruit5 { top: 50%; left: 35%; opacity: 0.5; animation-delay: 3s; }
-.fruit6 { top: 85%; right: 5%; animation-delay: 5s; }
-.fruit7 { top: 5%; right: 3%; opacity: 0.5; animation-delay: 1.5s; }
-.fruit8 { top: 30%; right: 6%; opacity: 0.5; animation-delay: 2.5s; }
+.fruit1 {
+    top: 5%;
+    left: 60%;
+    animation-delay: 0s;
+}
+
+.fruit2 {
+    top: 25%;
+    left: 10%;
+    opacity: 0.5;
+    animation-delay: 2s;
+}
+
+.fruit3 {
+    top: 65%;
+    left: 5%;
+    opacity: 0.5;
+    animation-delay: 4s;
+}
+.fruit4 {
+    top: 3%;
+    left: 5%;
+    opacity: 0.3;
+    animation-delay: 1s;
+}
+
+.fruit5 {
+    top: 50%;
+    left: 35%;
+    opacity: 0.5;
+    animation-delay: 3s;
+}
+
+.fruit6 {
+    top: 85%;
+    right: 5%;
+    animation-delay: 5s;
+}
+.fruit7 {
+    top: 5%;
+    right: 3%;
+    opacity: 0.5;
+    animation-delay: 1.5s;
+}
+
+.fruit8 {
+    top: 30%;
+    right: 6%;
+    opacity: 0.5;
+    animation-delay: 2.5s;
+}
+
+
+.menu-icon {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+.home-icon {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+.sidebar ul li {
+    cursor: pointer;
+}
+.sidebar ul li:hover {
+    background-color: #558b6e;
+    color: white;
+    border-radius: 5px;
+}
 
 @keyframes float {
     0%, 100% { transform: translateY(0px); }

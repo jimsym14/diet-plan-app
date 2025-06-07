@@ -64,6 +64,15 @@ public class Controller {
                     int mealId = jsonObject.get("mealId").getAsInt();
                     toggleMealSelection(mealDay, mealId);
                     break;
+                case "openClients":
+                    Platform.runLater(() -> {
+                        try {
+                            new ClientTableView().start(new javafx.stage.Stage());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    });
+                    break;
                 case "getInitialData":
                     sendInitialData();
                     break;
@@ -86,6 +95,7 @@ public class Controller {
                         validateUserForm(formData);
                     }
                     break;
+
                 default:
                     System.out.println("Άγνωστη ενέργεια: " + action);
             }

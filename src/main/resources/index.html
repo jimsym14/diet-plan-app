@@ -19,21 +19,10 @@
     <aside class="sidebar">
         <h2>DIET PLAN</h2>
         <ul>
-            <li>
-                <span class="menu-text">Dashboard</span>
-            </li>
-            <li>
-                <span class="menu-text">Clients</span>
-            </li>
-            <li>
-                <span class="menu-text">Meal Plans</span>
-            </li>
-            <li>
-                <span class="menu-text">Recipes</span>
-            </li>
-            <li>
-                <span class="menu-text">Settings</span>
-            </li>
+            <li><span></span><img src="home.png" alt="Home Icon" class="home-icon"> Dashboard</li>
+            <li onclick="openClients()"><span></span><img src="customer.png" alt="Clients Icon" class="menu-icon"> Clients </li>
+
+
         </ul>
     </aside>
     <main class="main-content">
@@ -239,6 +228,11 @@
             });
         });
     });
+    function openClients() {
+        if (bridge) {
+            bridge.postMessage(JSON.stringify({ action: "openClients" }));
+        }
+    }
 </script>
 </body>
 </html>
