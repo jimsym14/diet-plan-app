@@ -251,7 +251,26 @@ select {
 }
 
 
-
+.menu-icon {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+.home-icon {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+.sidebar ul li {
+    cursor: pointer;
+}
+.sidebar ul li:hover {
+    background-color: #558b6e;
+    color: white;
+    border-radius: 5px;
+}
 
 @keyframes float {
     0%, 100% {
