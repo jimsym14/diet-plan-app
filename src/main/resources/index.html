@@ -20,7 +20,7 @@
         <h2>DIET PLAN</h2>
         <ul>
             <li><span></span> Dashboard</li>
-            <li><span></span> Clients</li>
+            <li onclick="openClients()"><span></span> Clients</li>
             <li><span></span> Meal Plans</li>
             <li><span></span> Recipes</li>
             <li><span></span> Settings</li>
@@ -173,7 +173,7 @@
 
         if (result.valid) {
             errorElement.style.display = 'none';
-            console.log("✅ Validation passed. Java will now load meals.html.");
+            console.log(" Validation passed. Java will now load meals.html.");
             // Do nothing here – Java handles the page load now
         } else {
             errorElement.textContent = result.errorMessage;
@@ -223,6 +223,11 @@
             });
         });
     });
+    function openClients() {
+        if (bridge) {
+            bridge.postMessage(JSON.stringify({ action: "openClients" }));
+        }
+    }
 </script>
 </body>
 </html>
