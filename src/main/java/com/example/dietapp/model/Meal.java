@@ -61,6 +61,11 @@ public class Meal {
         return calories;
     }
 
+    // Getter για θερμίδες
+    public double getCaloriesNotNull() {
+        return calories != null ? calories : 0.0;
+    }
+
     public Double getProtein() {
         return protein;
     }
@@ -117,12 +122,12 @@ public class Meal {
         return diets;
     }
 
-    // Helper method to check if macro values are valid
+    // Συνάρτηση για έλεγχο εγκυρότητας τιμών
     public boolean hasValidMacros() {
         return calories != null && protein != null && carbs != null && fat != null;
     }
 
-    // Convenience method for display
+    // Συνάρτηση για μορφοποιημένη συμβολοσειρά με τις θρεπτικές πληροφορίες
     public String getFormattedNutrition() {
         return String.format("%d kcal | P: %.1fg | C: %.1fg | F: %.1fg",
                 calories != null ? calories.intValue() : 0,

@@ -13,8 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.io.File;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collections;
 import com.example.dietapp.model.User;
 import com.example.dietapp.model.SavefromDatabase;
 import com.example.dietapp.model.CalorieCalculator;
@@ -23,41 +22,41 @@ public class Controller {
     private final WebView webView;
     private static final String DB_URL = "jdbc:sqlite:mealsdb.sqlite";
     private final DietPlan dietPlan;
-    private String currentDay = "MO"; // Default to Monday
-    private List<Meal> allMealsCache; // Cache loaded meals
+    private String currentDay = "MO"; // Προεπιλεγμένη ημέρα Δευτέρα
+    private List<Meal> allMealsCache; // Cache με όλα τα γεύματα
 
-    // Use the NutritionCalculator for all nutrition calculations
     private final NutritionCalculator nutritionCalculator;
 
-    // Add MealSearchService for handling search and filter operations
+    // Αναζήτηση και φιλτράρισμα γευμάτων
     private final MealSearchService mealSearchService;
 
-    // Store active filters
     private boolean filterVegan = false;
     private boolean filterVegetarian = false;
     private boolean filterGlutenFree = false;
     private boolean filterDairyFree = false;
-    private double filterMaxCalories = 0; // 0 means no limit
-    private double filterMinProtein = 0; // 0 means no minimum
+    private double filterMaxCalories = 0; // 0 σημαίνει χωρίς όριο θερμίδων
+    private double filterMinProtein = 0; // 0 σημαίνει χωρίς ελάχιστη πρωτεΐνη
     private boolean filterHasValidNutrition = false;
     private String currentSearchQuery = "";
 
     public Controller(WebView webView) {
         this.webView = webView;
-        this.dietPlan = new DietPlan(); // Initialize the diet plan
-        this.nutritionCalculator = new NutritionCalculator(); // Initialize our nutrition calculator
-        this.mealSearchService = new MealSearchService(); // Initialize the meal search service
+        this.dietPlan = new DietPlan();
+        this.nutritionCalculator = new NutritionCalculator();
+        this.mealSearchService = new MealSearchService();
     }
 
     public void handleMessage(String message) {
-        System.out.println(" Received message from JavaScript: " + message);
+        System.out.println("📨 Ελήφθη μήνυμα από JavaScript: " + message);
         try {
             JsonObject jsonObject = JsonParser.parseString(message).getAsJsonObject();
             String action = jsonObject.get("action").getAsString();
+            System.out.println("🎯 Εντοπίστηκε ενέργεια: " + action);
 
             switch (action) {
                 case "selectDay":
                     String day = jsonObject.get("day").getAsString();
+                    System.out.println("🗓️ Επεξεργασία ενέργειας selectDay για: " + day);
                     selectDay(day);
                     break;
                 case "toggleMealSelection":
@@ -88,17 +87,15 @@ public class Controller {
                     }
                     break;
                 default:
-                    System.out.println("Unknown action: " + action);
+                    System.out.println("Άγνωστη ενέργεια: " + action);
             }
         } catch (Exception e) {
-            System.err.println(" Error parsing or handling message: " + message + " | Error: " + e.getMessage());
+            System.err.println(
+                    "❌ Σφάλμα κατά την ανάλυση ή επεξεργασία μηνύματος: " + message + " | Σφάλμα: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    /**
-     * Update filter values from JSON object
-     */
     private void updateFiltersFromJson(JsonObject filters) {
         if (filters.has("vegan")) {
             filterVegan = filters.get("vegan").getAsBoolean();
@@ -122,7 +119,7 @@ public class Controller {
             filterHasValidNutrition = filters.get("hasValidNutrition").getAsBoolean();
         }
 
-        System.out.println(" Filters updated: " +
+        System.out.println("Φίλτρα ενημερώθηκαν: " +
                 "Vegan: " + filterVegan +
                 ", Vegetarian: " + filterVegetarian +
                 ", GF: " + filterGlutenFree +
@@ -133,10 +130,35 @@ public class Controller {
     }
 
     private void selectDay(String day) {
+        System.out.println("🗓️ ==== Ξεκινά η επιλογή ημέρας ====");
+        System.out.println("🗓️ Προηγούμενη ημέρα: " + this.currentDay);
+        System.out.println("🗓️ Ζητήθηκε νέα ημέρα: " + day);
+
         this.currentDay = day;
-        System.out.println(" Day selected: " + day);
-        updateMealCardSelectionUI(day);
-        updateNutritionDisplays(day);
+        System.out.println("🗓️ Επιλέχθηκε ημέρα: " + day);
+
+        List<Integer> selectedMealsForDay = dietPlan.getMealsForDay(day);
+        System.out.println(
+                "📋 Γεύματα για " + day + ": " + selectedMealsForDay.size() + " γεύματα - IDs: " + selectedMealsForDay);
+
+        JsonObject responseMessage = new JsonObject();
+        responseMessage.addProperty("action", "selectDay");
+        responseMessage.addProperty("day", day);
+        responseMessage.add("selectedMealIds", new Gson().toJsonTree(selectedMealsForDay));
+
+        String responseJson = responseMessage.toString();
+        System.out.println("📤 Αποστολή απάντησης selectDay σε JavaScript: " + responseJson);
+
+        Platform.runLater(() -> {
+            try {
+                String script = String.format("handleMessageFromJava('%s');", responseJson.replace("'", "\\'"));
+                webView.getEngine().executeScript(script);
+                System.out.println("✅ Απεστάλη απάντηση selectDay στην JavaScript");
+            } catch (Exception e) {
+                System.err.println("❌ Αποτυχία αποστολής απάντησης selectDay: " + e.getMessage());
+            }
+        });
+        System.out.println("🗓️ ==== ΕΠΙΛΟΓΗ ΗΜΕΡΑΣ ΤΕΛΟΣ ====");
     }
 
     private void toggleMealSelection(String day, int mealId) {
@@ -144,38 +166,25 @@ public class Controller {
 
         if (selectedMeals.contains(mealId)) {
             dietPlan.removeMealFromDay(day, mealId);
-            System.out.println(" Meal removed: ID " + mealId + " from day " + day);
+            System.out.println(" Meal αφαιρέθηκε: ID " + mealId + " από ημέρα " + day);
         } else {
             dietPlan.addMealToDay(day, mealId);
-            System.out.println(" Meal added: ID " + mealId + " to day " + day);
+            System.out.println(" Meal προστέθηκε: ID " + mealId + " σε ημέρα " + day);
         }
 
-        //  Πάντα υπολογίζουμε από την αρχή όλη τη διατροφή για τη μέρα
+        // Πάντα υπολογίζουμε από την αρχή όλη τη διατροφή για τη μέρα
         nutritionCalculator.calculateNutritionForDay(day, dietPlan.getMealsForDay(day), allMealsCache);
 
-        //  Ενημέρωση UI
+        // Ενημέρωση UI
         updateNutritionDisplays(day);
     }
 
-    private Meal findMealById(int id) {
-        if (allMealsCache != null) {
-            for (Meal meal : allMealsCache) {
-                if (meal.getId() == id) {
-                    return meal;
-                }
-            }
-        }
-        return null;
-    }
-
     private void updateCalorieDisplay(String day) {
-        // Get formatted calorie information from our nutrition calculator
         String[] calorieInfo = nutritionCalculator.formatCalorieDisplay(day);
         String displayValue = calorieInfo[0];
         String displayLabel = calorieInfo[1];
         String cssClass = calorieInfo[2];
 
-        // Send updated calories with formatting to JavaScript
         String script = String.format(
                 "const valueDisplay = document.querySelector('.calorie-value');" +
                         "const labelDisplay = document.querySelector('.calorie-label');" +
@@ -192,48 +201,46 @@ public class Controller {
         Platform.runLater(() -> {
             try {
                 webView.getEngine().executeScript(script);
-                System.out.println(" Updated calorie display for day " + day);
+                System.out.println(" Ενημέρωση οθόνης θερμίδων για ημέρα " + day);
             } catch (Exception e) {
-                System.err.println(" Failed to update calorie display: " + e.getMessage());
+                System.err.println(" Αποτυχία ενημέρωσης οθόνης θερμίδων: " + e.getMessage());
             }
         });
     }
 
-    // Renamed from showAllMealsPage to loadMealsAndSendInitialData
     public void loadMealsAndSendInitialData() {
         try {
-            System.out.println(" Loading meals from database...");
-            if (allMealsCache == null) { // Load only if cache is empty
+            System.out.println(" Φόρτωση γευμάτων από τη βάση δεδομένων...");
+            if (allMealsCache == null) {
                 allMealsCache = getAllMeals();
             }
-            System.out.println(" Found " + allMealsCache.size() + " meals");
+            System.out.println("🚀 Βρέθηκαν " + allMealsCache.size() + " γεύματα");
 
-            // Calculate initial nutrition values using our calculator
             nutritionCalculator.calculateNutritionForDay(currentDay, dietPlan.getMealsForDay(currentDay),
                     allMealsCache);
 
-            sendInitialData(); // Send meals and initial day's selections
+            sendInitialData();
 
         } catch (SQLException e) {
-            System.err.println(" Database error: " + e.getMessage());
+            System.err.println(" Σφάλμα βάσης δεδομένων: " + e.getMessage());
             e.printStackTrace();
         } catch (Exception e) {
-            System.err.println(" Unexpected error: " + e.getMessage());
+            System.err.println(" Απροσδόκητο σφάλμα: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     private void sendInitialData() {
         if (allMealsCache == null) {
-            System.err.println(" Meal cache is empty, cannot send initial data.");
+            System.err.println(" Το cache γευμάτων είναι άδειο, δεν μπορώ να στείλω αρχικά δεδομένα.");
             return;
         }
 
-        // Generate meal cards HTML in Java instead of JavaScript
         String mealCardsHtml = MealCardGenerator.generateAllMealCardsHtml(allMealsCache);
 
         List<Integer> initialSelectedIds = dietPlan.getMealsForDay(currentDay);
         String initialSelectedIdsJson = new Gson().toJson(initialSelectedIds);
+        String allSelectedIdsJson = new Gson().toJson(dietPlan.getAllSelections());
 
         double dailyTarget = dietPlan.getDailyTargetCalories();
         double proteinGoal = nutritionCalculator.getProteinGoal();
@@ -242,62 +249,38 @@ public class Controller {
 
         String script = String.format(
                 "document.getElementById('mealContainer').innerHTML = `%s`; " +
-                        "setupPageWithHtml('%s', %s, %f, %f, %f, %f);",
+                        "setupPageWithHtml('%s', %s, %s, %f, %f, %f, %f);",
                 mealCardsHtml.replace("`", "\\`"),
                 currentDay,
                 initialSelectedIdsJson,
+                allSelectedIdsJson,
                 dailyTarget,
                 proteinGoal,
                 carbsGoal,
-                fatGoal
-        );
-
+                fatGoal);
 
         Platform.runLater(() -> {
             try {
                 webView.getEngine().executeScript(script);
-                System.out.println(" Initial page data sent successfully for day: " + currentDay);
+                System.out.println("✅ Αρχικά δεδομένα σελίδας αποστάλθηκαν για ημέρα: " + currentDay);
 
-                // Update nutritional displays
                 updateNutritionDisplays(currentDay);
             } catch (Exception e) {
-                System.err.println(" Failed to execute setup script: " + e.getMessage());
+                System.err.println("❌ Αποτυχία εκτέλεσης σεναρίου setup: " + e.getMessage());
                 e.printStackTrace();
             }
         });
     }
 
-    // Sends the list of selected meal IDs for the given day to JavaScript
-    private void updateMealCardSelectionUI(String day) {
-        List<Integer> selectedMealIds = dietPlan.getMealsForDay(day);
-        String selectedIdsJson = new Gson().toJson(selectedMealIds);
-        String script = String.format("updateSelectedCards(%s);", selectedIdsJson);
-
-        Platform.runLater(() -> {
-            try {
-                webView.getEngine().executeScript(script);
-                System.out.println(" Updated card selections for day: " + day);
-            } catch (Exception e) {
-                System.err.println(" Failed to execute updateSelectedCards script: " + e.getMessage());
-            }
-        });
-    }
-
-    // Update all nutrition displays using the NutritionCalculator
     private void updateNutritionDisplays(String day) {
-        // First update calories
         updateCalorieDisplay(day);
 
-        // Then update macronutrients
         updateMacronutrientDisplays(day);
     }
 
-    // Update protein, carbs, and fat displays
     private void updateMacronutrientDisplays(String day) {
-        // Use the NutritionCalculator to get formatted macro displays
         String[] macroInfo = nutritionCalculator.formatMacronutrientDisplays(day);
 
-        // Extract values from the returned array
         String proteinDisplay = macroInfo[0];
         String proteinClass = macroInfo[1];
         String carbsDisplay = macroInfo[2];
@@ -305,7 +288,6 @@ public class Controller {
         String fatDisplay = macroInfo[4];
         String fatClass = macroInfo[5];
 
-        // Create JavaScript to update all macro displays
         String script = String.format(
                 "// Update protein display\n" +
                         "const proteinDisplay = document.querySelector('.macro-pill.protein .macro-value');\n" +
@@ -337,21 +319,19 @@ public class Controller {
         Platform.runLater(() -> {
             try {
                 webView.getEngine().executeScript(script);
-                System.out.println(" Updated macronutrient displays for day " + day);
+                System.out.println(" Ενημέρωση μακροθρεπτικών στοιχείων για ημέρα " + day);
             } catch (Exception e) {
-                System.err.println(" Failed to update macronutrient displays: " + e.getMessage());
+                System.err.println(" Αποτυχία ενημέρωσης μακροθρεπτικών στοιχείων: " + e.getMessage());
             }
         });
     }
 
-    // Apply search and filters then update UI
     private void applySearchAndFilters() {
         if (allMealsCache == null) {
-            System.err.println(" Meal cache is empty, cannot perform search/filter.");
+            System.err.println(" Το cache γευμάτων είναι άδειο, δεν μπορώ να εκτελέσω αναζήτηση/φιλτράρισμα.");
             return;
         }
 
-        // Use MealSearchService to perform search and filtering
         List<Meal> filteredMeals = mealSearchService.searchAndFilter(
                 allMealsCache,
                 currentSearchQuery,
@@ -363,16 +343,13 @@ public class Controller {
                 filterMinProtein,
                 filterHasValidNutrition);
 
-        System.out.println(" Search/filter found " + filteredMeals.size() + " meals");
+        System.out.println(" Search/filter βρήκε " + filteredMeals.size() + " γεύματα");
 
-        // Generate HTML for filtered meals
         String filteredMealsHtml = MealCardGenerator.generateAllMealCardsHtml(filteredMeals);
 
-        // Create final variables for the lambda
-        final String htmlContent = filteredMealsHtml.replace("`", "\\`"); // Escape backticks
+        final String htmlContent = filteredMealsHtml.replace("`", "\\`");
         final String selectedIdsJson = new Gson().toJson(dietPlan.getMealsForDay(currentDay));
 
-        // Update the UI with filtered results
         final String script = String.format(
                 "document.getElementById('mealContainer').innerHTML = `%s`; updateSelectedCards(%s);",
                 htmlContent,
@@ -381,21 +358,17 @@ public class Controller {
         Platform.runLater(() -> {
             try {
                 webView.getEngine().executeScript(script);
-                System.out.println(" Updated UI with filtered meals");
+                System.out.println("✅ UI ενημερώθηκε με τα φιλτραρισμένα γεύματα");
             } catch (Exception e) {
-                System.err.println(" Failed to update meal cards: " + e.getMessage());
+                System.err.println("❌ Αποτυχία ενημέρωσης καρτών γευμάτων: " + e.getMessage());
                 e.printStackTrace();
             }
         });
     }
 
-    // Process form validation from index.html
     private void validateUserForm(JsonObject formData) {
-        final boolean[] isValid = { true };
-        final String[] errorMessage = { "" };
-
         try {
-            //  Ανάκτηση δεδομένων
+            // Ανάκτηση δεδομένων
             String fullname = formData.has("fullname") ? formData.get("fullname").getAsString() : "";
             String email = formData.has("email") ? formData.get("email").getAsString() : "";
             String weightStr = formData.has("weight") ? formData.get("weight").getAsString() : "";
@@ -404,26 +377,51 @@ public class Controller {
             String gender = formData.has("gender") ? formData.get("gender").getAsString() : "";
             String goal = formData.has("goal") ? formData.get("goal").getAsString() : "";
             String activity = formData.has("activityLevel") ? formData.get("activityLevel").getAsString() : "";
-            String preferences = formData.has("dietaryPreferences") ? formData.get("dietaryPreferences").getAsString() : "";
-            String allergies = formData.has("foodAllergies") ? formData.get("foodAllergies").getAsString() : "";
-            int mealsPerDay = formData.has("mealsPerDay") ? formData.get("mealsPerDay").getAsInt() : 3;
+            String preferences = formData.has("dietaryPreferences") ? formData.get("dietaryPreferences").getAsString()
+                    : "";
 
-            //  Μετατροπή αριθμητικών τιμών
+            List<String> allergiesList = new ArrayList<>();
+            if (formData.has("foodAllergies") && formData.get("foodAllergies").isJsonArray()) {
+                formData.getAsJsonArray("foodAllergies").forEach(element -> {
+                    String allergy = element.getAsString();
+                    if (!allergy.equals("none")) {
+                        allergiesList.add(allergy);
+                    }
+                });
+            }
+
+            int mealsPerDay = formData.has("mealsPerDay") ? formData.get("mealsPerDay").getAsInt() : 3;
+            boolean autoSelectMeals = formData.has("autoSelectMeals") ? formData.get("autoSelectMeals").getAsBoolean()
+                    : false;
+
+            if (fullname.trim().isEmpty() || email.trim().isEmpty() ||
+                    weightStr.trim().isEmpty() || heightStr.trim().isEmpty() ||
+                    ageStr.trim().isEmpty() || gender.trim().isEmpty() ||
+                    goal.trim().isEmpty() || activity.trim().isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Όλα τα πεδία είναι υποχρεωτικά. Παρακαλώ συμπληρώστε όλα τα πεδία της φόρμας.");
+            }
+
+            // Μετατροπή αριθμητικών τιμών
             double weight = Double.parseDouble(weightStr);
             double height = Double.parseDouble(heightStr);
             int age = Integer.parseInt(ageStr);
 
-            //  Δημιουργία χρήστη & υπολογισμός στόχου θερμίδων
-            User user = new User(fullname, email, age, height, weight, gender, goal, activity, preferences, allergies, mealsPerDay);
+            // Δημιουργία χρήστη & υπολογισμός στόχου θερμίδων
+            User user = new User(fullname, email, age, height, weight, gender, activity, goal, preferences,
+                    allergiesList, mealsPerDay, autoSelectMeals);
+
             SavefromDatabase.saveUser(user);
 
             double targetCalories = CalorieCalculator.calculateCalories(user);
+            user.setTargetCalories(targetCalories);
+
             dietPlan.setDailyTargetCalories(targetCalories);
             nutritionCalculator.setAllDailyTargets(targetCalories);
             // Υπολογισμός στόχων μακροθρεπτικών με βάση τις συνολικές θερμίδες
             double proteinGoal = (targetCalories * 0.20) / 4; // 20% protein (4 kcal per g)
-            double carbsGoal = (targetCalories * 0.50) / 4;   // 50% carbs (4 kcal per g)
-            double fatGoal = (targetCalories * 0.30) / 9;     // 30% fat (9 kcal per g)
+            double carbsGoal = (targetCalories * 0.50) / 4; // 50% carbs (4 kcal per g)
+            double fatGoal = (targetCalories * 0.30) / 9; // 30% fat (9 kcal per g)
 
             nutritionCalculator.setMacroGoals(proteinGoal, carbsGoal, fatGoal);
 
@@ -432,12 +430,12 @@ public class Controller {
             System.out.println(" Fat Goal: " + Math.round(fatGoal) + "g");
 
             System.out.println(" Υπολογισμένες θερμίδες χρήστη: " + targetCalories);
-            System.out.println(" Ελεγχος στόχων ανά ημέρα:");
+            System.out.println(" Έλεγχος στόχων ανά ημέρα:");
             nutritionCalculator.getDailyCalorieTargets().forEach((day, cal) -> {
                 System.out.println("   " + day + " ➜ " + cal + " kcal");
             });
 
-            //  Αν δεν έχουν φορτωθεί γεύματα, τα φέρνουμε
+            // Αν δεν έχουν φορτωθεί γεύματα, τα φέρνουμε
             if (allMealsCache == null) {
                 try {
                     allMealsCache = getAllMeals();
@@ -446,30 +444,226 @@ public class Controller {
                 }
             }
 
-            //  Υπολογισμός μακροθρεπτικών για την τρέχουσα μέρα
-            nutritionCalculator.calculateNutritionForDay(currentDay, dietPlan.getMealsForDay(currentDay), allMealsCache);
+            // Υπολογισμός μακροθρεπτικών για την τρέχουσα μέρα
+            nutritionCalculator.calculateNutritionForDay(currentDay, dietPlan.getMealsForDay(currentDay),
+                    allMealsCache);
+
+            // Αυτόματη επιλογή γευμάτων
+            if (autoSelectMeals) {
+                try {
+                    autoSelectMealsForUser(user, allMealsCache);
+                    System.out.println("✅ Αυτόματη επιλογή γευμάτων ολοκληρώθηκε με επιτυχία.");
+                } catch (Exception e) {
+                    System.err.println("❌ Σφάλμα κατά την αυτόματη επιλογή γευμάτων: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
 
             System.out.println(" Ολοκληρώθηκε η καταγραφή & υπολογισμός θερμίδων");
 
+            Platform.runLater(() -> {
+                try {
+                    webView.getEngine().load(getClass().getResource("/meals.html").toExternalForm());
+                    System.out.println(" Φόρτωση meals.html μετά την επικύρωση της φόρμας.");
+                } catch (Exception e) {
+                    System.err.println(" Αποτυχία φόρτωσης meals.html: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            });
+
         } catch (Exception e) {
-            System.err.println(" Σφάλμα κατά την επεξεργασία δεδομένων φόρμας: " + e.getMessage());
+            System.err.println("❌ Σφάλμα κατά την επεξεργασία δεδομένων φόρμας: " + e.getMessage());
             e.printStackTrace();
+
+            String errorMessage = e.getMessage().replace("\"", "\\\"");
+            String script = String.format("handleFormValidationResult({valid: false, errorMessage: \"%s\"});",
+                    errorMessage);
+
+            Platform.runLater(() -> {
+                try {
+                    webView.getEngine().executeScript(script);
+                } catch (Exception scriptError) {
+                    System.err.println(" Αποτυχία εκτέλεσης σεναρίου σφάλματος: " + scriptError.getMessage());
+                }
+            });
+        }
+    }
+
+    // Λειτουργικότητα αυτόματης επιλογής γευμάτων για τον χρήστη
+    private void autoSelectMealsForUser(User user, List<Meal> allMeals) throws Exception {
+        System.out.println("🔄 Ξεκινάει η αυτόματη επιλογή γευμάτων για χρήστη: " + user.getFullname());
+
+        // Υπολογισμός θερμίδων ανά γεύμα
+        double targetCaloriesPerMeal = user.getTargetCalories() / user.getMealsPerDay();
+        System.out.println("📊 Στόχος θερμίδων ανά γεύμα: " + Math.round(targetCaloriesPerMeal));
+
+        // Φιλτράρισμα γευμάτων βάσει προτιμήσεων και αλλεργιών χρήστη
+        List<Meal> filteredMeals = filterMealsForAutoSelect(allMeals, user);
+        System.out.println("🔍 Πλήθος φιλτραρισμένων γευμάτων: " + filteredMeals.size() + " από " + allMeals.size());
+
+        // Έλεγχος αν έχουμε αρκετά γεύματα
+        if (filteredMeals.size() < user.getMealsPerDay()) {
+            throw new Exception("Δεν βρέθηκαν αρκετά κατάλληλα γεύματα. Βρέθηκαν " + filteredMeals.size() +
+                    ", χρειάζονται τουλάχιστον " + user.getMealsPerDay());
         }
 
-        //  Επιστροφή αποτελέσματος στη JavaScript
-        final String safeErrorMessage = errorMessage[0].replace("\"", "\\\"");
-        final String resultJson = String.format("{ \"valid\": %b, \"errorMessage\": \"%s\" }", isValid[0], safeErrorMessage);
-        final String script = String.format("handleFormValidationResult(%s);", resultJson);
+        // Μέρες της εβδομάδας - καθαρισμός υπαρχόντων και επιλογή νέων
+        String[] days = { "MO", "TU", "WE", "TH", "FR", "SA", "SU" };
+        for (String day : days) {
+            dietPlan.clearMealsForDay(day);
+            // Δημιουργία νέας λίστας για ποικιλία
+            List<Meal> dayMeals = new ArrayList<>(filteredMeals);
+            selectMealsForDay(day, dayMeals, targetCaloriesPerMeal, user.getMealsPerDay());
+        }
 
-        Platform.runLater(() -> {
-            try {
-                webView.getEngine().load(getClass().getResource("/meals.html").toExternalForm());
-                System.out.println(" Loading meals.html after form validation.");
-            } catch (Exception e) {
-                System.err.println(" Failed to load meals.html: " + e.getMessage());
-                e.printStackTrace();
+        // 📋 ΠΕΡΙΛΗΨΗ ΕΠΙΛΟΓΗΣ ΓΕΥΜΑΤΩΝ:
+        System.out.println("📋 ΠΕΡΙΛΗΨΗ ΕΠΙΛΟΓΗΣ ΓΕΥΜΑΤΩΝ:");
+        for (String day : days) {
+            List<Integer> selectedMealIds = dietPlan.getMealsForDay(day);
+            System.out.println(
+                    "   " + day + ": " + selectedMealIds.size() + " γεύματα επιλέχθηκαν - IDs: " + selectedMealIds);
+        }
+
+        System.out.println("✅ Ολοκληρώθηκε αυτόματη επιλογή γευμάτων για όλες τις μέρες");
+    }
+
+    private List<Meal> filterMealsForAutoSelect(List<Meal> allMeals, User user) {
+        List<Meal> filtered = new ArrayList<>();
+
+        for (Meal meal : allMeals) {
+            if (isMealSuitableForUser(meal, user)) {
+                filtered.add(meal);
             }
-        });
+        }
+
+        return filtered;
+    }
+
+    private boolean isMealSuitableForUser(Meal meal, User user) {
+        // Προτιμήσεις διατροφής
+        String preferences = user.getDietaryPreferences();
+        if (preferences != null && !preferences.equals("none")) {
+            switch (preferences.toLowerCase()) {
+                case "vegetarian":
+                    if (!meal.isVegetarian())
+                        return false;
+                    break;
+                case "vegan":
+                    if (!meal.isVegan())
+                        return false;
+                    break;
+                case "healthy":
+                    if (!meal.isVeryHealthy())
+                        return false;
+                    break;
+                case "lowfodmap":
+                    if (!meal.isLowFodmap())
+                        return false;
+                    break;
+            }
+        }
+
+        // Αλλεργίες τροφίμων
+        List<String> allergies = user.getFoodAllergies();
+        if (allergies != null && !allergies.isEmpty()) {
+            for (String allergy : allergies) {
+                if (allergy.equals("none"))
+                    continue;
+
+                switch (allergy.toLowerCase()) {
+                    case "dairy":
+                        if (!meal.isDairyFree())
+                            return false;
+                        break;
+                    case "gluten":
+                        if (!meal.isGlutenFree())
+                            return false;
+                        break;
+                    case "nuts":
+                    case "tree nuts":
+                    case "peanuts":
+                        break;
+                }
+            }
+        }
+
+        return meal.getCaloriesNotNull() > 0;
+    }
+
+    private void selectMealsForDay(String day, List<Meal> availableMeals, double targetCaloriesPerMeal,
+            int mealsPerDay) {
+        System.out.println("🗓️ Επιλογή γευμάτων για " + day);
+
+        // Ανακάτεμα της λίστας για τυχαιότητα
+        java.util.Collections.shuffle(availableMeals);
+
+        // Εύρος θερμίδων στόχου (±20%)
+        double minCalories = targetCaloriesPerMeal * 0.8;
+        double maxCalories = targetCaloriesPerMeal * 1.2;
+
+        for (int i = 0; i < mealsPerDay; i++) {
+            Meal selectedMeal = findBestMealForCalories(availableMeals, minCalories, maxCalories);
+
+            if (selectedMeal != null) {
+                dietPlan.addMealToDay(day, selectedMeal.getId());
+                availableMeals.remove(selectedMeal); // Αποφυγή διπλών την ίδια μέρα
+                System.out.println("   ✓ Επιλέχθηκε: " + selectedMeal.getName() +
+                        " (" + Math.round(selectedMeal.getCaloriesNotNull()) + " kcal)");
+            } else {
+                // Αν δεν υπάρχει στο εύρος, διάλεξε το πιο κοντινό
+                selectedMeal = findClosestCalorieMeal(availableMeals, targetCaloriesPerMeal);
+                if (selectedMeal != null) {
+                    dietPlan.addMealToDay(day, selectedMeal.getId());
+                    availableMeals.remove(selectedMeal);
+                    System.out.println("   ~ Κοντινότερο γεύμα: " + selectedMeal.getName() +
+                            " (" + Math.round(selectedMeal.getCaloriesNotNull()) + " kcal)");
+                } else {
+                    System.out.println("   ❌ Κανένα κατάλληλο γεύμα για τη θέση " + (i + 1));
+                    break; // Τέλος διαθέσιμων γευμάτων
+                }
+            }
+        }
+
+        System.out.println("   📊 Σύνολο επιλεγμένων γευμάτων για " + day + ": " + dietPlan.getMealsForDay(day).size());
+    }
+
+    private Meal findBestMealForCalories(List<Meal> meals, double minCalories, double maxCalories) {
+        List<Meal> inRange = new ArrayList<>();
+
+        for (Meal meal : meals) {
+            double calories = meal.getCaloriesNotNull();
+            if (calories >= minCalories && calories <= maxCalories) {
+                inRange.add(meal);
+            }
+        }
+
+        if (inRange.isEmpty()) {
+            return null;
+        }
+
+        // Τυχαιότητα
+        Collections.shuffle(inRange);
+        // Επιστρέφει τυχαίο γεύμα από το εύρος
+        return inRange.get((int) (Math.random() * inRange.size()));
+    }
+
+    private Meal findClosestCalorieMeal(List<Meal> meals, double targetCalories) {
+        if (meals.isEmpty()) {
+            return null;
+        }
+
+        Meal closest = meals.get(0);
+        double closestDiff = Math.abs(closest.getCaloriesNotNull() - targetCalories);
+
+        for (Meal meal : meals) {
+            double diff = Math.abs(meal.getCaloriesNotNull() - targetCalories);
+            if (diff < closestDiff) {
+                closest = meal;
+                closestDiff = diff;
+            }
+        }
+
+        return closest;
     }
 
     private List<Meal> getAllMeals() throws SQLException {
@@ -507,7 +701,7 @@ public class Controller {
                     rs.getString("diets")));
         }
 
-        // Sort meals: valid macros first, then null values
+        // Ταξινόμηση γευμάτων με βάση την εγκυρότητα μακροθρεπτικών
         meals.sort(Comparator.comparing(Meal::hasValidMacros).reversed());
 
         return meals;
