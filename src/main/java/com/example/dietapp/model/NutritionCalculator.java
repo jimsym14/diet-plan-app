@@ -4,15 +4,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Handles nutrition calculations for the diet plan.
- * This moves nutrition calculation logic from JavaScript to Java.
- */
 public class NutritionCalculator {
     public static final double DEFAULT_DAILY_CALORIES = 2000.0;
     public static final double DEFAULT_PROTEIN_GOAL = 120.0;
     public static final double DEFAULT_CARBS_GOAL = 250.0;
     public static final double DEFAULT_FAT_GOAL = 65.0;
+
     public double getProteinGoal() {
         return proteinGoal;
     }
@@ -28,7 +25,6 @@ public class NutritionCalculator {
     private double proteinGoal = DEFAULT_PROTEIN_GOAL;
     private double carbsGoal = DEFAULT_CARBS_GOAL;
     private double fatGoal = DEFAULT_FAT_GOAL;
-
 
     private final Map<String, Double> dailyCalorieTargets;
     private final Map<String, Double> dailyCaloriesConsumed;
@@ -53,13 +49,6 @@ public class NutritionCalculator {
         }
     }
 
-    /**
-     * Calculates nutrition totals for a specific day based on selected meals
-     * 
-     * @param day             The day to calculate for
-     * @param selectedMealIds List of selected meal IDs for this day
-     * @param allMeals        All available meals to choose from
-     */
     public void calculateNutritionForDay(String day, List<Integer> selectedMealIds, List<Meal> allMeals) {
         double totalCalories = 0.0;
         double totalProtein = 0.0;
@@ -69,25 +58,27 @@ public class NutritionCalculator {
         for (Integer mealId : selectedMealIds) {
             Meal meal = findMealById(mealId, allMeals);
             if (meal != null) {
-                if (meal.getCalories() != null) totalCalories += meal.getCalories();
-                if (meal.getProtein() != null) totalProtein += meal.getProtein();
-                if (meal.getCarbs() != null) totalCarbs += meal.getCarbs();
-                if (meal.getFat() != null) totalFat += meal.getFat();
+                if (meal.getCalories() != null)
+                    totalCalories += meal.getCalories();
+                if (meal.getProtein() != null)
+                    totalProtein += meal.getProtein();
+                if (meal.getCarbs() != null)
+                    totalCarbs += meal.getCarbs();
+                if (meal.getFat() != null)
+                    totalFat += meal.getFat();
             }
         }
 
-        //  Ενημερώνει τους χάρτες
+        // Ενημερώνει τους χάρτες
         dailyCaloriesConsumed.put(day, totalCalories);
         dailyProteinTotals.put(day, totalProtein);
         dailyCarbsTotals.put(day, totalCarbs);
         dailyFatTotals.put(day, totalFat);
     }
 
-    /**
-     * Add a meal to the nutrition totals for a day
-     */
     public void addMealNutrition(String day, Meal meal) {
-        if (meal == null) return;
+        if (meal == null)
+            return;
 
         if (meal.getCalories() != null) {
             double current = dailyCaloriesConsumed.getOrDefault(day, 0.0);
@@ -107,11 +98,9 @@ public class NutritionCalculator {
         }
     }
 
-    /**
-     * Remove a meal from the nutrition totals for a day
-     */
     public void removeMealNutrition(String day, Meal meal) {
-        if (meal == null) return;
+        if (meal == null)
+            return;
 
         if (meal.getCalories() != null) {
             double current = dailyCaloriesConsumed.getOrDefault(day, 0.0);
@@ -131,9 +120,6 @@ public class NutritionCalculator {
         }
     }
 
-    /**
-     * Format the calorie display for a day
-     */
     public String[] formatCalorieDisplay(String day) {
         double target = dailyCalorieTargets.getOrDefault(day, DEFAULT_DAILY_CALORIES);
         double consumed = dailyCaloriesConsumed.getOrDefault(day, 0.0);
@@ -159,9 +145,6 @@ public class NutritionCalculator {
         return new String[] { displayValue, displayLabel, cssClass };
     }
 
-    /**
-     * Format the macronutrient displays for a day
-     */
     public String[] formatMacronutrientDisplays(String day) {
         double protein = dailyProteinTotals.getOrDefault(day, 0.0);
         double carbs = dailyCarbsTotals.getOrDefault(day, 0.0);
@@ -176,7 +159,6 @@ public class NutritionCalculator {
         String fatDisplay = String.format("%dg/%dg", Math.round(fat), (int) fatGoal);
         String fatClass = fat >= fatGoal ? "met" : "not-met";
 
-
         return new String[] {
                 proteinDisplay, proteinClass,
                 carbsDisplay, carbsClass,
@@ -184,15 +166,12 @@ public class NutritionCalculator {
         };
     }
 
-    /**
-     * Find a meal by its ID in a list of meals
-     */
-
     public void setAllDailyTargets(double calories) {
         for (String day : dailyCalorieTargets.keySet()) {
             dailyCalorieTargets.put(day, calories);
         }
     }
+
     public void setMacroGoals(double protein, double carbs, double fat) {
         this.proteinGoal = protein;
         this.carbsGoal = carbs;
@@ -207,8 +186,8 @@ public class NutritionCalculator {
         }
         return null;
     }
-    // Getters for each map
 
+    // Getters
     public Map<String, Double> getDailyCalorieTargets() {
         return dailyCalorieTargets;
     }

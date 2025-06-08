@@ -32,28 +32,28 @@
                 <!-- Στήλη 1 -->
                 <div class="form-column">
                     <label>Full Name
-                        <input type="text" id="fullname" required />
+                        <input type="text" id="fullname" value="John Papadopoulos" required />
                     </label>
 
                     <label>Email
-                        <input type="email" id="email" required />
+                        <input type="email" id="email" value="john@example.com" required />
                     </label>
 
                     <label>Age
-                        <input type="number" id="age" min="5" max="100" required />
+                        <input type="number" id="age" min="5" max="100" value="25" required />
                     </label>
 
                     <label>Height (cm)
-                        <input type="number" id="height" min="100" max="250" required />
+                        <input type="number" id="height" min="100" max="250" value="175" required />
                     </label>
 
                     <label>Current Weight (kg)
-                        <input type="number" id="weight" min="30" max="200" required />
+                        <input type="number" id="weight" min="30" max="200" value="70" required />
                     </label>
 
                     <label>Gender
                         <select id="gender">
-                            <option value="male">Male</option>
+                            <option value="male" selected>Male</option>
                             <option value="female">Female</option>
                             <option value="other">Other</option>
                         </select>
@@ -66,7 +66,7 @@
                         <select id="goal">
                             <option value="">Select goal</option>
                             <option value="lose">Weight Loss</option>
-                            <option value="maintain">Weight Maintenance</option>
+                            <option value="maintain" selected>Weight Maintenance</option>
                             <option value="gain">Weight Gain</option>
                         </select>
                     </label>
@@ -75,30 +75,46 @@
                         <select id="activity">
                             <option value="">Select activity</option>
                             <option value="low">Low</option>
-                            <option value="moderate">Moderate</option>
+                            <option value="moderate" selected>Moderate</option>
                             <option value="high">High</option>
                         </select>
                     </label>
 
                     <label>Dietary Preferences
                         <select id="preferences">
-                            <option value="">None</option>
+                            <option value="none" selected>None</option>
                             <option value="vegetarian">Vegetarian</option>
                             <option value="vegan">Vegan</option>
+                            <option value="healthy">Healthy</option>
+                            <option value="lowfodmap">Low FODMAP</option>
                         </select>
                     </label>
 
-                    <label>Food Allergies
-                        <input type="text" id="allergies" placeholder="e.g. peanuts, dairy" />
+                    <label>Food Exclusions
+                        <select id="allergies">
+                            <option value="none" selected>None</option>
+                            <option value="dairy">Dairy</option>
+                            <option value="gluten">Gluten</option>
+                            <option value="nuts">Nuts</option>
+                        </select>
                     </label>
 
                     <label>Meals per Day
                         <select id="meals">
-                            <option>3</option>
+                            <option selected>3</option>
                             <option>4</option>
                             <option>5</option>
                         </select>
                     </label>
+
+                    <label class="switch-label">
+                        Auto-Select Meals
+                        <div class="switch-container">
+                            <input type="checkbox" id="autoSelectMeals" class="switch-input" checked>
+                            <span class="switch-slider"></span>
+                        </div>
+                    </label>
+                    
                     <button type="button" id="generatePlanBtn">Generate Plan</button>
                 </div>
             </div>
@@ -113,7 +129,6 @@
 <script>
     let bridge = null;
 
-    // Function to send message to Java backend
     function sendMessageToJava(messageObject) {
         if (bridge) {
             try {
@@ -122,21 +137,18 @@
                 bridge.postMessage(messageString);
             } catch (e) {
                 console.error("Error sending message to Java:", e.message);
-                // If communication with Java fails, fall back to client-side validation
                 if (messageObject.action === 'validateForm') {
                     fallbackValidation(messageObject.formData);
                 }
             }
         } else {
             console.warn("Bridge not available. Using fallback validation.");
-            // If bridge isn't available, use client-side validation
             if (messageObject.action === 'validateForm') {
                 fallbackValidation(messageObject.formData);
             }
         }
     }
 
-    // Client-side validation as fallback if Java bridge is not available
     function fallbackValidation(formData) {
         const weight = parseFloat(formData.weight);
         const height = parseFloat(formData.height);
@@ -147,7 +159,7 @@
         let isValid = true;
         let errorMessage = "";
         
-        // Validate inputs
+        // Έλεγχος εγκυρότητας
         if (!fullname || !email || isNaN(weight) || isNaN(height) || isNaN(age)) {
             isValid = false;
             errorMessage = 'Please fill all required fields correctly.';
@@ -162,18 +174,15 @@
             errorMessage = 'Age must be between 5 and 100 years.';
         }
         
-        // Handle the result
         handleFormValidationResult({ valid: isValid, errorMessage: errorMessage });
     }
 
-    // Handle form validation result from Java
     function handleFormValidationResult(result) {
         const errorElement = document.getElementById('validationError');
 
         if (result.valid) {
             errorElement.style.display = 'none';
-            console.log(" Validation passed. Java will now load meals.html.");
-            // Do nothing here – Java handles the page load now
+            console.log("✅ Validation passed. Java will now load meals.html.");
         } else {
             errorElement.textContent = result.errorMessage;
             errorElement.style.display = 'block';
@@ -181,7 +190,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        // Try to initialize the JavaFX bridge
         try {
             if (window.bridge) {
                 console.log('JavaFX bridge initialized successfully');
@@ -198,9 +206,7 @@
             console.error('Bridge initialization failed:', e.message);
         }
 
-        // Add validation and submit handler
         document.getElementById('generatePlanBtn').addEventListener('click', function() {
-            // Collect form data
             const formData = {
                 fullname: document.getElementById('fullname').value,
                 email: document.getElementById('email').value,
@@ -211,11 +217,11 @@
                 goal: document.getElementById('goal').value,
                 activityLevel: document.getElementById('activity').value,
                 dietaryPreferences: document.getElementById('preferences').value,
-                foodAllergies: document.getElementById('allergies').value,
-                mealsPerDay: parseInt(document.getElementById('meals').value)
+                foodAllergies: [document.getElementById('allergies').value],
+                mealsPerDay: parseInt(document.getElementById('meals').value),
+                autoSelectMeals: document.getElementById('autoSelectMeals').checked
             };
             
-            // Send to Java for validation
             sendMessageToJava({
                 action: 'validateForm',
                 formData: formData

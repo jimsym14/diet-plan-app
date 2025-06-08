@@ -1,4 +1,5 @@
 package com.example.dietapp;
+
 import com.example.dietapp.model.User;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
@@ -11,6 +12,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.sql.*;
+
 public class ClientTableView extends Application {
 
     @Override
@@ -43,15 +45,16 @@ public class ClientTableView extends Application {
         String url = "jdbc:sqlite:mealsdb.sqlite"; // ή το πλήρες path αν είσαι εκτός IDE
 
         try (Connection conn = DriverManager.getConnection(url);
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT name, email, age FROM users")) {
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT name, email, age FROM users")) {
 
             while (rs.next()) {
                 String name = rs.getString("name");
                 String email = rs.getString("email");
                 int age = rs.getInt("age");
                 System.out.println("Found user: " + name + " (" + email + ")");
-                users.add(new User(name, email, age, 170, 70, "male", "", "", "", "", 3));
+                users.add(new User(name, email, age, 170.0, 70.0, "male", "moderate", "maintain", "none",
+                        java.util.Arrays.asList("none"), 3, true));
             }
 
         } catch (SQLException e) {

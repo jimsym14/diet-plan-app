@@ -5,21 +5,6 @@
     <link rel="stylesheet" type="text/css" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Roboto+Mono:wght@700&display=swap" rel="stylesheet">
     <style>
-        #debugPanel {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            color: #4CAF50;
-            font-family: monospace;
-            padding: 10px;
-            max-height: 200px;
-            overflow-y: auto;
-            display: none;
-        }
-        .debug-message { color: #4CAF50; }
-        .error-message { color: #f44336; }
     </style>
 </head>
 <body class="meals-page">
@@ -84,172 +69,144 @@
     </div>
     
     <div class="meal-container" id="mealContainer">
-        <!-- Meal cards will be inserted here by JavaScript -->
+        <!-- Εδώ θα εισαχθούν οι κάρτες γευμάτων με JavaScript -->
     </div>
     
-    <div id="debugPanel"></div>
-    
     <script>
+        // Απενεργοποίηση όλων των console.log για παραγωγή
+        console.log = function() {};
         let bridge = null;
-        let isDebugMode = false; // Set debug mode to false by default
-        let currentDay = "MO"; // Track the currently selected day
-        let allMealsData = []; // Store all meal data locally
-        let localSelections = {}; // For development mode - store selections locally
-        let dailyCalories = {}; // Track remaining calories for each day
-        let dailyProtein = {}; // Track protein totals by day
-        let dailyCarbs = {}; // Track carbs totals by day
-        let dailyFat = {}; // Track fat totals by day
+        let isDebugMode = false;
+        let currentDay = "MO";
+        let allMealsData = [];
+        let localSelections = {}; 
+        let dailyCalories = {}; 
+        let dailyProtein = {}; 
+        let dailyCarbs = {}; 
+        let dailyFat = {};
         
-        // Default nutrition targets
+        //Default τιμές
         let DEFAULT_DAILY_CALORIES = 2000;
-        // Default daily calorie target
-        let DEFAULT_PROTEIN_GOAL = 120; // Default daily protein goal in grams
-        let DEFAULT_CARBS_GOAL = 250; // Default daily carbs goal in grams
-        let DEFAULT_FAT_GOAL = 65; // Default daily fat goal in grams
+        let DEFAULT_PROTEIN_GOAL = 120;
+        let DEFAULT_CARBS_GOAL = 250;
+        let DEFAULT_FAT_GOAL = 65;
 
-        // Initialize local selections for each day
+        // Αρχικοποίηση διατροφικών τιμών για κάθε ημέρα
         function initLocalSelections() {
             const days = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
             days.forEach(day => {
                 if (!localSelections[day]) {
                     localSelections[day] = [];
                 }
-                // Initialize nutrition values for each day
-                if (dailyCalories[day] === undefined) {
-                    dailyCalories[day] = DEFAULT_DAILY_CALORIES;
-                }
-                if (dailyProtein[day] === undefined) {
-                    dailyProtein[day] = 0;
-                }
-                if (dailyCarbs[day] === undefined) {
-                    dailyCarbs[day] = 0;
-                }
-                if (dailyFat[day] === undefined) {
-                    dailyFat[day] = 0;
-                }
+                if (dailyCalories[day] === undefined) dailyCalories[day] = DEFAULT_DAILY_CALORIES;
+                if (dailyProtein[day] === undefined)  dailyProtein[day]  = 0;
+                if (dailyCarbs[day] === undefined)    dailyCarbs[day]    = 0;
+                if (dailyFat[day] === undefined)      dailyFat[day]      = 0;
             });
         }
 
-        function showDebug(message) {
-            // Always log to console, regardless of debug mode
-            console.log(`[DEBUG] ${message}`);
-            
-            // No longer showing debug in UI panel
-        }
-
         function showError(message) {
-            // Log errors to console
+            // Καταγραφή σφαλμάτων στην κονσόλα
             console.error(`[ERROR] ${message}`);
-            
-            // No longer showing errors in UI panel
         }
 
         function goBack() {
             window.location.href = 'index.html';
         }
 
-        // Function called by Java to initialize the page
+        // Δημιουργεί τυχαίες επιλογές γευμάτων για κάθε ημέρα της εβδομάδας
+        function generateRandomSelections() {
+            if (!Array.isArray(allMealsData) || allMealsData.length === 0) return;
+            const days = ["MO","TU","WE","TH","FR","SA","SU"];
+            // Παίρνουμε όλα τα IDs και ανακατεύουμε μία φορά
+            const ids = allMealsData.map(m => m.id);
+            const shuffled = [...ids];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            // Υπολογίζουμε πόσα γεύματα ανά ημέρα
+            const countPerDay = Math.max(1, Math.floor(shuffled.length / days.length));
+            // Κατανομή διαδοχικών τμημάτων για κάθε ημέρα
+            days.forEach((day, idx) => {
+                const start = idx * countPerDay;
+                const slice = shuffled.slice(start, start + countPerDay);
+                localSelections[day] = slice;
+            });
+        }
+
+        // Συνάρτηση της Java για την αρχικοποίηση της σελίδας 
         function setupPage(mealsData, initialDay, initialSelectedIds) {
-            showDebug(`Setting up page for day: ${initialDay}`);
-            showDebug(`Received mealsData type: ${typeof mealsData}`);
-            showDebug(`Received initialSelectedIds type: ${typeof initialSelectedIds}`);
-            // Log a sample if it's an array
             if (Array.isArray(mealsData) && mealsData.length > 0) {
-                showDebug(`First meal sample: ${JSON.stringify(mealsData[0])}`);
-            }
-            if (Array.isArray(initialSelectedIds)) {
-                showDebug(`Initial selected IDs: ${JSON.stringify(initialSelectedIds)}`);
-            }
-
-            try {
-                // Ensure mealsData is an array, attempt parse if it's a string
-                if (typeof mealsData === 'string') {
-                    try {
-                        allMealsData = JSON.parse(mealsData);
-                        showDebug('Parsed mealsData string to array.');
-                    } catch (e) {
-                        showError(`Failed to parse mealsData string: ${e.message}`);
-                        allMealsData = []; // Use empty array on failure
-                    }
-                } else if (Array.isArray(mealsData)) {
-                    allMealsData = mealsData;
-                    showDebug('Using mealsData directly as array.');
-                } else {
-                    showError(`Invalid mealsData type received: ${typeof mealsData}`);
-                    allMealsData = []; // Use empty array
+                if (Array.isArray(initialSelectedIds)) {
                 }
 
-                // Ensure initialSelectedIds is an array
-                let selectedIdsArray;
-                if (typeof initialSelectedIds === 'string') {
-                    try {
-                        selectedIdsArray = JSON.parse(initialSelectedIds);
-                        showDebug('Parsed initialSelectedIds string to array.');
-                    } catch (e) {
-                        showError(`Failed to parse initialSelectedIds string: ${e.message}`);
-                        selectedIdsArray = []; // Use empty array on failure
+                try {
+                    allMealsData = parseJSONorArray(mealsData.length === undefined ? mealsData : JSON.stringify(mealsData));
+                    localSelections[initialDay] = parseJSONorArray(initialSelectedIds);
+
+                    // Αν δεν υπάρχουν αρχικές επιλογές, δημιούργησε τυχαίες επιλογές για κάθε ημέρα
+                    if (!Array.isArray(initialSelectedIds) || parseJSONorArray(initialSelectedIds).length === 0) {
+                        generateRandomSelections();
                     }
-                } else if (Array.isArray(initialSelectedIds)) {
-                    selectedIdsArray = initialSelectedIds;
-                    showDebug('Using initialSelectedIds directly as array.');
-                } else {
-                    showError(`Invalid initialSelectedIds type received: ${typeof initialSelectedIds}`);
-                    selectedIdsArray = []; // Use empty array
+                    currentDay = initialDay;
+                    
+                    createMealCards(allMealsData); 
+                    updateSelectedCards(localSelections[currentDay]);
+                    updateSelectedDayButton(currentDay);
+                    updateDailyCaloriesDisplay();
+
+                } catch (e) {
+                    showError(`Error during setupPage: ${e.message}`);
+                    console.error(e);
                 }
-
-                currentDay = initialDay;
-                
-                // Store the initial selections for this day
-                localSelections[currentDay] = selectedIdsArray;
-
-                createMealCards(allMealsData); // Create all cards first
-                updateSelectedCards(selectedIdsArray); // Then apply selection state
-                updateSelectedDayButton(currentDay); // Highlight the initial day button
-                updateDailyCaloriesDisplay(); // Update the calories based on initial selections
-
-                showDebug(`Page setup complete. ${allMealsData.length} meals loaded. ${selectedIdsArray.length} selected for ${initialDay}.`);
-            } catch (e) {
-                showError(`Error during setupPage: ${e.message}`);
-                console.error(e); // Log full error object
             }
         }
         
-        // Update meal cards with filtered results from search
+        // Ενημέρωση καρτών γευμάτων με φιλτραρισμένα δεδομένα
         function updateMealCards(mealsData, selectedIds) {
-            showDebug(`Updating meal cards with filtered data. Count: ${mealsData.length}`);
             try {
-                // Store the filtered meals
+                //Αποθήκευση όλων των δεδομένων γευμάτων
                 allMealsData = mealsData;
                 
-                // Recreate the cards with the filtered data
+                // Δημιουργία ενημερωμένων καρτών γευμάτων
                 createMealCards(mealsData);
                 
-                // Update the selection state
                 updateSelectedCards(selectedIds);
                 
-                showDebug(`Meal cards updated successfully`);
             } catch (e) {
-                showError(`Error updating meal cards: ${e.message}`);
+                showError(`Σφάλμα κατά την ενημέρωση καρτών γευμάτων: ${e.message}`);
                 console.error(e);
             }
         }
 
-        // Function called by Java to update card selections when day changes
+        // Συνάρτηση για την ενημέρωση των επιλεγμένων καρτών γευμάτων για την τρέχουσα ημέρα
         function updateSelectedCards(selectedIds) {
-            showDebug(`Updating selected cards for day ${currentDay}. IDs: ${JSON.stringify(selectedIds)}`);
+            
+            localSelections[currentDay] = selectedIds.slice(); 
+
+            if (!allMealsData || allMealsData.length === 0) {
+                extractMealDataFromDOM();
+            }
+            
             const mealCards = document.querySelectorAll('.meal-card');
+            let cardsUpdated = 0;
             mealCards.forEach(card => {
                 const mealId = parseInt(card.dataset.mealId, 10);
                 if (selectedIds.includes(mealId)) {
                     card.classList.add('selected');
+                    cardsUpdated++;
                 } else {
                     card.classList.remove('selected');
                 }
             });
-            showDebug('Card selection update finished.');
+            
+            // Ενημερωση θερμίδων και μακροθρεπτικών στοιχείων
+            updateDailyCaloriesDisplay(); 
+            updateMacroNutrientDisplays();
         }
 
-        // Function to update which day button is highlighted
+        // Συνάρτηση για την ενημέρωση του κουμπιού της επιλεγμένης ημέρας
         function updateSelectedDayButton(day) {
             const dayBtns = document.querySelectorAll('.day-btn');
             dayBtns.forEach(btn => {
@@ -262,41 +219,33 @@
         }
 
         function createMealCards(meals) {
-            showDebug(`Creating meal cards. Input type: ${typeof meals}, Is array: ${Array.isArray(meals)}`);
             const container = document.getElementById('mealContainer');
             if (!container) {
                 showError('Meal container element not found!');
-                return; // Stop if container doesn't exist
+                return; // Στοπ αν δεν υπάρχει το container
             }
-            container.innerHTML = ''; // Clear previous cards
-            showDebug(`Container found and cleared. Processing ${meals ? meals.length : 0} meals.`);
+            container.innerHTML = '';
 
             if (!Array.isArray(meals)) {
                  showError(`createMealCards received non-array input: ${typeof meals}`);
-                 return; // Stop if not an array
+                 return; // Στοπ αν δεν είναι πίνακας
             }
 
-            // Let's add debug info about the first meal to see its structure
-            if (meals.length > 0) {
-                const firstMeal = meals[0];
-                showDebug(`DEBUG - First meal structure: ${JSON.stringify(firstMeal)}`);
-                showDebug(`DEBUG - First meal keys: ${Object.keys(firstMeal).join(', ')}`);
+            if (meals.length>0) {
             }
 
-            meals.forEach((meal, index) => {
+            meals.forEach((meal,index)=>{
                 try {
                     const mealCard = document.createElement('div');
                     mealCard.className = 'meal-card';
-                    mealCard.dataset.mealId = meal.id; // Add data-meal-id attribute
-                    
-                    // Validate required meal properties
+                    mealCard.dataset.mealId = meal.id;
+
                     if (!meal.name || meal.id === undefined) {
                         showError(`Meal at index ${index} is missing name or id property - skipping`);
-                        showDebug(`Problem meal: ${JSON.stringify(meal)}`);
-                        return; // Skip this card
+                        return; // Παράλειψη γεύματος αν λείπει το όνομα ή το ID
                     }
 
-                    // Check if properties exist and use the correct property names
+                    // Έλεγχος για έγκυρα μακροθρεπτικά στοιχεία
                     const hasValidMacros = 
                         meal.protein !== null && meal.protein !== undefined && 
                         meal.carbs !== null && meal.carbs !== undefined && 
@@ -327,57 +276,53 @@
                     `;
                     
                     container.appendChild(mealCard);
-                    showDebug(`Created card for meal: ${meal.name} (ID: ${meal.id})`);
                 } catch (e) {
-                    showError(`Error creating meal card at index ${index}: ${e.message}`);
+                    showError(`Σφάλμα κατά τη δημιουργία κάρτας γεύματος στη θέση ${index}: ${e.message}`);
                     if (meal) {
-                        showDebug(`Problem meal data: ${JSON.stringify(meal)}`);
                     }
                 }
             });
-            showDebug(`Finished creating all meal cards: ${meals.length} cards created`);
         }
 
-        // Calculate and update remaining calories for the day with improved formatting
+        // Υπολογισμός και ενημέρωση θερμίδων για την τρέχουσα ημέρα    
         function updateDailyCaloriesDisplay() {
-            // Calculate total calories from selected meals for current day
             const selectedMeals = localSelections[currentDay] || [];
             let totalSelectedCalories = 0;
             
-            // Add up calories from all selected meals
+            // Άροισμα θερμίδων από όλα τα επιλεγμένα γεύματα
             selectedMeals.forEach(mealId => {
                 const meal = allMealsData.find(m => m.id === mealId);
                 if (meal && meal.calories) {
                     totalSelectedCalories += meal.calories;
+                } else {
+                    showError(`Could not find meal data for ID ${mealId} or missing calories`);
                 }
             });
             
-            // Calculate remaining calories
+            // Υπολογισμός εναπομεινουσών θερμίδων
             const remainingCalories = DEFAULT_DAILY_CALORIES - totalSelectedCalories;
             
-            // Store in dailyCalories object
+            // Αποθήκευση θερμίδων για την τρέχουσα ημέρα
             dailyCalories[currentDay] = remainingCalories;
             
-            // Update the display with appropriate formatting and color
+            // Ενημέρωση της οθόνης θερμίδων
             const calorieValue = document.querySelector('.calorie-value');
             const calorieLabel = document.querySelector('.calorie-label');
             
             if (calorieValue && calorieLabel) {
-                // Remove any previous color classes
                 calorieValue.classList.remove('over', 'warning');
                 
-                // Update the value and label separately
                 if (remainingCalories < 0) {
-                    // Over budget (negative remaining)
+                    // Αρνητικές θερμίδες (υπερβολή)
                     calorieValue.textContent = Math.abs(Math.round(remainingCalories));
                     calorieLabel.textContent = 'kcal Over';
                     calorieValue.classList.add('over');
                 } else {
-                    // Within or under budget
+                    // Μεσα στο όριο
                     calorieValue.textContent = Math.round(remainingCalories);
                     calorieLabel.textContent = 'kcal Remaining';
                     
-                    // Add warning class if calories are low
+                    // Προειδοποίηση αν εναπομείνουσες θερμίδες <= 100
                     if (remainingCalories <= 100) {
                         calorieValue.classList.add('warning');
                     }
@@ -387,30 +332,38 @@
             console.log(`Updated calories for ${currentDay}: Total selected: ${totalSelectedCalories}, Remaining: ${remainingCalories}`);
         }
 
-        // Update all macro nutrient displays (protein, carbs, fat)
+        // Ενημέρωση μακροθρεπτικών στοιχείων για την τρέχουσα ημέρα
         function updateMacroNutrientDisplays() {
-            // Calculate totals from selected meals for current day
+            // Υπολογισμός μακροθρεπτικών στοιχείων για την τρέχουσα ημέρα
             const selectedMeals = localSelections[currentDay] || [];
             let totalProtein = 0;
             let totalCarbs = 0;
             let totalFat = 0;
             
-            // Add up macros from all selected meals
+            // Αροισμα μακροθρεπτικών στοιχείων από όλα τα επιλεγμένα γεύματα
             selectedMeals.forEach(mealId => {
                 const meal = allMealsData.find(m => m.id === mealId);
                 if (meal) {
-                    if (meal.protein) totalProtein += meal.protein;
-                    if (meal.carbs) totalCarbs += meal.carbs;
-                    if (meal.fat) totalFat += meal.fat;
+                    if (meal.protein) {
+                        totalProtein += meal.protein;
+                    }
+                    if (meal.carbs) {
+                        totalCarbs += meal.carbs;
+                    }
+                    if (meal.fat) {
+                        totalFat += meal.fat;
+                    }
+                } else {
+                    showError(`Could not find meal data for macro calculation: ID ${mealId}`);
                 }
             });
             
-            // Store totals in daily tracking objects
+            // Αποθήκευση μακροθρεπτικών στοιχείων για την τρέχουσα ημέρα
             dailyProtein[currentDay] = totalProtein;
             dailyCarbs[currentDay] = totalCarbs;
             dailyFat[currentDay] = totalFat;
             
-            // Update protein display
+            // Ενημέρωση τιμών για Πρωτεΐνη, Υδατάνθρακες και Λίπος
             const proteinDisplay = document.querySelector('.macro-pill.protein .macro-value');
             if (proteinDisplay) {
                 proteinDisplay.classList.remove('met', 'not-met');
@@ -423,8 +376,7 @@
                     proteinDisplay.classList.add('not-met');
                 }
             }
-            
-            // Update carbs display
+
             const carbsDisplay = document.querySelector('.macro-pill.carbs .macro-value');
             if (carbsDisplay) {
                 carbsDisplay.classList.remove('met', 'not-met');
@@ -436,8 +388,7 @@
                     carbsDisplay.classList.add('not-met');
                 }
             }
-            
-            // Update fat display
+
             const fatDisplay = document.querySelector('.macro-pill.fat .macro-value');
             if (fatDisplay) {
                 fatDisplay.classList.remove('met', 'not-met');
@@ -453,283 +404,133 @@
             console.log(`Updated macros for ${currentDay}: Protein: ${totalProtein}g, Carbs: ${totalCarbs}g, Fat: ${totalFat}g`);
         }
 
-        // Function to send message to Java backend
-        function sendMessageToJava(messageObject) {
-            if (bridge) {
-                try {
-                    const messageString = JSON.stringify(messageObject);
-                    showDebug(`Sending to Java: ${messageString}`);
-                    bridge.postMessage(messageString);
-                } catch (e) {
-                    showError(`Error sending message to Java: ${e.message}`);
-                }
-            } else {
-                showDebug(`Bridge not available. Using local storage. Would send: ${JSON.stringify(messageObject)}`);
+        // Συνάρτηση για την επεξεργασία μηνυμάτων από την Java
+        function handleMessageFromJava(messageString) {
+            try {
+                console.log('📨 Received message from Java:', messageString);
+                const messageObject = JSON.parse(messageString);
                 
-                // Development mode - simulate backend with local storage
-                if (messageObject.action === 'toggleMealSelection') {
-                    // Handle toggling meal selection locally
-                    const { day, mealId } = messageObject;
-                    const daySelections = localSelections[day] || [];
-                    const index = daySelections.indexOf(mealId);
+                // Διαγνωστικό μήνυμα
+                if (messageObject.action === 'selectDay') {
+                    // Αλλαγή ημέρας
+                    const { day, selectedMealIds } = messageObject;
+                    console.log(`🔄 Processing selectDay for ${day} with meal IDs from Java:`, selectedMealIds);
                     
-                    if (index === -1) {
-                        // Add the meal to selections for this day
-                        daySelections.push(mealId);
-                        showDebug(`Dev mode: Added meal ${mealId} to day ${day}`);
-                    } else {
-                        // Remove the meal from selections for this day
-                        daySelections.splice(index, 1);
-                        showDebug(`Dev mode: Removed meal ${mealId} from day ${day}`);
-                    }
-                    
-                    localSelections[day] = daySelections;
-                    showDebug(`Dev mode: Day ${day} now has selections: ${JSON.stringify(localSelections[day])}`);
-                    
-                    // Update nutrition displays after toggling meal
-                    updateDailyCaloriesDisplay();
-                    updateMacroNutrientDisplays();
-                    
-                } else if (messageObject.action === 'selectDay') {
-                    // When day changes, update UI with the current day's selections
-                    const { day } = messageObject;
-                    const selections = localSelections[day] || [];
+                    // Ενημέρωση τοπικών επιλογών για αυτή την ημέρα
+                    localSelections[day] = selectedMealIds || [];
+
+                    currentDay = day;
+                    updateSelectedDayButton(day);
+
                     setTimeout(() => {
-                        updateSelectedCards(selections);
-                        updateDailyCaloriesDisplay(); // Update calorie display when switching days
-                        updateMacroNutrientDisplays(); // Update macro displays when switching days
-                    }, 50);
-                    showDebug(`Dev mode: Switching to day ${day} with selections: ${JSON.stringify(selections)}`);
+                        updateSelectedCards(selectedMealIds || []);
+                        updateDailyCaloriesDisplay();
+                        updateMacroNutrientDisplays();
+                    }, 100);
                 }
+            } catch (e) {
+                showError(`Failed to parse message from Java: ${e.message}`);
+                console.error('Raw message:', messageString);
             }
         }
 
-        // Request initial data when the bridge is ready
+        // Συνάρτηση για την αποστολή μηνυμάτων στην Java
+        function sendMessageToJava(messageObject) {
+            console.log(`🔧 sendMessageToJava called with:`, messageObject);
+            console.log(`🔧 Bridge status: ${bridge ? 'EXISTS' : 'NULL'}`);
+            if (bridge) {
+                try {
+                    const messageString = JSON.stringify(messageObject);
+                    bridge.postMessage(messageString);
+                } catch (e) {
+                    console.error(`❌ Σφάλμα αποστολής μηνύματος στην Java: ${e.message}`);
+                }
+            } else {
+                showError('Η γέφυρα JavaFX δεν είναι διαθέσιμη');
+            }
+        }
+
+        // Πάρε τα αρχικά δεδομένα από την Java
         function requestInitialData() {
-            showDebug('Requesting initial data from Java...');
             sendMessageToJava({ action: 'getInitialData' });
         }
 
         // Bridge initialization
         function initializeBridge() {
-            showDebug('Initializing bridge...');
             try {
                 if (window.bridge) {
-                    showDebug('JavaFX bridge initialized successfully');
                     bridge = window.bridge;
-                    // Request data once bridge is confirmed
-                    requestInitialData();
                 } else {
-                    showDebug('WARNING: Bridge not available - running in development mode');
-                    console.log('Running in development mode - bridge not available');
-                    
-                    // For development testing only - make at least one day selected
-                    setTimeout(() => {
-                        if (document.querySelector('.day-btn.selected') === null) {
-                            updateSelectedDayButton('MO');
-                            showDebug('No day selected, defaulting to Monday in development mode');
-                        }
-                    }, 500);
+                    showError('Η γέφυρα JavaFX δεν είναι διαθέσιμη');
                 }
             } catch (e) {
-                showError('Bridge initialization failed: ' + e.message);
+                showError(`Αποτυχία αρχικοποίησης γέφυρας: ${e.message}`);
             }
         }
 
-        // Toggle debug mode with keyboard shortcut (Option+D for Mac or Ctrl+D for others)
-        document.addEventListener('keydown', function(e) {
-            // Use Option+D (Alt key) for Mac and Ctrl+D for other platforms
-            if ((e.altKey && e.key === 'd') || (e.ctrlKey && e.key === 'd')) {
-                isDebugMode = !isDebugMode;
-                const debugPanel = document.getElementById('debugPanel');
-                if (debugPanel) {
-                    debugPanel.style.display = isDebugMode ? 'block' : 'none';
-                    if (isDebugMode) {
-                        showDebug('Debug mode enabled');
-                    }
-                }
-                e.preventDefault();
-            }
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // Debug mode is disabled by default
-            isDebugMode = false;
-            const debugPanel = document.getElementById('debugPanel');
-            if (debugPanel) {
-                debugPanel.style.display = 'none';
-                // Debug message won't show until debug mode is enabled
-            }
-
-            // Initialize local selections storage
-            initLocalSelections();
-
-            // Initialize bridge first
-            initializeBridge();
-            
-            // Add search input handler
-            const searchInput = document.querySelector('.search-container input');
-            if (searchInput) {
-                let searchTimeout;
-                searchInput.addEventListener('input', function() {
-                    clearTimeout(searchTimeout);
-                    searchTimeout = setTimeout(() => {
-                        const query = searchInput.value.trim();
-                        if (query.length >= 2) {
-                            // Search with at least 2 characters
-                            sendMessageToJava({ 
-                                action: 'searchMeals', 
-                                query: query 
-                            });
-                        } else if (query === '') {
-                            // If search cleared, show all meals
-                            sendMessageToJava({ action: 'getInitialData' });
-                        }
-                    }, 300); // Debounce for 300ms
-                });
-            }
-            
-            // Add click handlers for days
-            const dayBtns = document.querySelectorAll('.day-btn');
-            dayBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const selectedDay = btn.dataset.day;
-                    if (selectedDay === currentDay) return; // Do nothing if clicking the already selected day
-
-                    currentDay = selectedDay;
-                    updateSelectedDayButton(currentDay); // Update button UI immediately
-                    showDebug(`Day button clicked: ${currentDay}`);
-                    // Tell Java the day has changed
-                    sendMessageToJava({ action: 'selectDay', day: currentDay });
-                    // Java will call back updateSelectedCards
-                });
-            });
-// Add click handler for Finish Plan button
-            const finishBtn = document.querySelector('.finish-btn');
-            if (finishBtn) {
-                finishBtn.addEventListener('click', () => {
-                    if (!allMealsData || allMealsData.length === 0) {
-                        extractMealDataFromDOM();
-                    }
-                    const planByName = {};
-
-                    Object.entries(localSelections).forEach(([day, ids]) => {
-                        planByName[day] = ids.map(id => {
-                            const meal = allMealsData.find(m => m.id === id);
-                            return meal && meal.name ? meal.name : `Meal ${id}`;
-                        });
-                    });
-
-                    const planSummary = encodeURIComponent(JSON.stringify(planByName));
-                    window.location.href = `finalplan.html?plan=${planSummary}`;
-                });
-            }
-            // Add click handler for meal cards using event delegation
-            const mealContainer = document.getElementById('mealContainer');
-            if (mealContainer) {
-                mealContainer.addEventListener('click', (e) => {
-                    const card = e.target.closest('.meal-card');
-                    if (!card) return;
-
-                    const mealId = parseInt(card.dataset.mealId, 10);
-                    if (isNaN(mealId)) {
-                        showError('Clicked card is missing a valid meal ID.');
-                        return;
-                    }
-
-                    // Τρέχουσα λίστα γευμάτων για τη μέρα
-                    let selected = localSelections[currentDay] || [];
-
-                    // Αν έχει ήδη επιλεγεί, αφαιρούμε
-                    if (selected.includes(mealId)) {
-                        selected = selected.filter(id => id !== mealId);
-                        card.classList.remove('selected');
-                        showDebug(`Deselected meal ${mealId} for ${currentDay}`);
+        // Συνάρτηση για τη ρύθμιση της σελίδας με προ-παραγμένο HTML από την Java
+        function setupPageWithHtml(initialDay, initialSelectedIds, allSelectedIds, targetCalories, proteinGoal, carbsGoal, fatGoal) {  
+            // Αρχικοποίηση τοπικών επιλογών
+            if (allSelectedIds) {  
+                try {  
+                    if (typeof allSelectedIds === 'object') {
+                        localSelections = allSelectedIds;
                     } else {
-                        selected.push(mealId);
-                        card.classList.add('selected');
-                        showDebug(`Selected meal ${mealId} for ${currentDay}`);
-                    }
-
-                    // Αποθηκεύουμε το updated selection
-                    localSelections[currentDay] = selected;
-
-                    // Ενημέρωση θερμίδων και macros
-                    updateDailyCaloriesDisplay();
-                    updateMacroNutrientDisplays();
-                });
-            } else {
-                showError('Meal container not found for event listener setup.');
-            }
-        });
-
-        function toggleDebugPanel() {
-            const debugPanel = document.getElementById('debugPanel');
-            if (debugPanel) {
-                const isCurrentlyVisible = debugPanel.style.display === 'block';
-                debugPanel.style.display = isCurrentlyVisible ? 'none' : 'block';
-                showDebug(`Debug panel ${isCurrentlyVisible ? 'hidden' : 'shown'}.`);
-            }
-        }
-
-        // Function called by Java when it provides pre-generated HTML
-        function setupPageWithHtml(initialDay, initialSelectedIds, targetCalories, proteinGoal, carbsGoal, fatGoal) {
-            if (!isNaN(proteinGoal)) DEFAULT_PROTEIN_GOAL = proteinGoal;
-            if (!isNaN(carbsGoal)) DEFAULT_CARBS_GOAL = carbsGoal;
-            if (!isNaN(fatGoal)) DEFAULT_FAT_GOAL = fatGoal;
-            if (targetCalories && !isNaN(targetCalories)) {
-                DEFAULT_DAILY_CALORIES = targetCalories;
-                console.log(" Default daily calories set from Java:", DEFAULT_DAILY_CALORIES);
-            } else {
-                console.warn(" No target calories received, using default 2000 kcal");
-            }
-            showDebug(`Setting up page with pre-generated HTML for day: ${initialDay}`);
+                        localSelections = parseJSONorArray(allSelectedIds);
+                    }  
+                } catch (e) {  
+                    showError('Failed parsing allSelectedIds in setupPageWithHtml: ' + e.message);  
+                }  
+            }  
             
-            try {
-                // Ensure initialSelectedIds is an array
-                let selectedIdsArray;
-                if (typeof initialSelectedIds === 'string') {
-                    try {
-                        selectedIdsArray = JSON.parse(initialSelectedIds);
-                        showDebug('Parsed initialSelectedIds string to array.');
-                    } catch (e) {
-                        showError(`Failed to parse initialSelectedIds string: ${e.message}`);
-                        selectedIdsArray = []; // Use empty array on failure
-                    }
-                } else if (Array.isArray(initialSelectedIds)) {
-                    selectedIdsArray = initialSelectedIds;
-                    showDebug('Using initialSelectedIds directly as array.');
-                } else {
-                    showError(`Invalid initialSelectedIds type received: ${typeof initialSelectedIds}`);
-                    selectedIdsArray = []; // Use empty array
+            if (!isNaN(proteinGoal)) DEFAULT_PROTEIN_GOAL = proteinGoal;  
+            if (!isNaN(carbsGoal)) DEFAULT_CARBS_GOAL = carbsGoal;  
+            if (!isNaN(fatGoal)) DEFAULT_FAT_GOAL = fatGoal;  
+            if (targetCalories && !isNaN(targetCalories)) {  
+                DEFAULT_DAILY_CALORIES = targetCalories;  
+                console.log(" Default daily calories set from Java:", DEFAULT_DAILY_CALORIES);  
+            } else {  
+                console.warn(" No target calories received, using default 2000 kcal");  
+            }              
+            try {  
+                localSelections[initialDay] = parseJSONorArray(initialSelectedIds);  
+  
+                currentDay = initialDay;  
+  
+                // Αν δεν υπάρχουν αρχικές επιλογές για αυτή την ημέρα, δημιούργησε τυχαίες επιλογές για όλες τις ημέρες
+                if (!Array.isArray(initialSelectedIds) || parseJSONorArray(initialSelectedIds).length === 0) {
+                    generateRandomSelections();
                 }
-
                 currentDay = initialDay;
+  
+                extractMealDataFromDOM();  
                 
-                // Store the initial selections for this day
-                localSelections[currentDay] = selectedIdsArray;
+                updateSelectedCards(localSelections[initialDay]);  
+                updateSelectedDayButton(currentDay);  
+  
+                updateDailyCaloriesDisplay();  
+                updateMacroNutrientDisplays();  
+  
+            } catch (e) {  
+                showError(`Error during setupPageWithHtml: ${e.message}`);  
+                console.error(e);  
+            }  
+        }  
 
-                // Cards are already created by Java's MealCardGenerator
-                updateSelectedCards(selectedIdsArray); // Apply selection state
-                updateSelectedDayButton(currentDay); // Highlight the initial day button
-                
-                // Since we may not have loaded meal data yet, get it from the DOM
-                extractMealDataFromDOM();
-                
-                // Update nutrition displays
-                updateDailyCaloriesDisplay(); 
-                updateMacroNutrientDisplays();
-
-                showDebug(`Page setup complete for day: ${initialDay}`);
-            } catch (e) {
-                showError(`Error during setupPageWithHtml: ${e.message}`);
-                console.error(e); // Log full error object
+        // βοηθητική για parsing πεδίων που μπορεί να είναι string ή array
+        function parseJSONorArray(input) {
+            if (typeof input === 'string') {
+                try {
+                    return JSON.parse(input);
+                } catch (e) {
+                    showError(`Αποτυχία μετατροπής από string: ${e.message}`);
+                    return [];
+                }
             }
+            return Array.isArray(input) ? input : [];
         }
-        
-        // Extract meal data from DOM (used when HTML is generated by Java)
+
         function extractMealDataFromDOM() {
-            showDebug('Extracting meal data from pre-generated DOM elements');
             try {
                 allMealsData = []; // Καθαρίζουμε το array
                 const mealCards = document.querySelectorAll('.meal-card');
@@ -778,12 +579,152 @@
                     }
                 });
 
-                showDebug(`Extracted ${allMealsData.length} meals from DOM`);
                 console.log(" allMealsData:", allMealsData);
             } catch (e) {
                 showError(` Failed to extract meal data from DOM: ${e.message}`);
                 console.error(e);
             }
+        }
+
+        // Αρχικοποίηση της σελίδας όταν φορτωθεί το DOM
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 DOM Content Loaded - Initializing page');
+            
+            // Αρχικοποίηση αποθηκευμένων επιλογών
+            initLocalSelections();
+
+            // Αρχικοποίηση γέφυρας
+            initializeBridge();
+            
+            // Ρύθμιση ακροατών συμβάντων
+            setupEventListeners();
+        });
+        
+        let isPageInitialized = false;
+
+        function setupEventListeners() {
+            if (isPageInitialized) return;
+            isPageInitialized = true;
+            
+            console.log('🎯 Setting up event listeners');
+            
+            // Ρύθμιση λειτουργίας αναζήτησης
+            const searchInput = document.querySelector('.search-container input');
+            if (searchInput) {
+                let searchTimeout;
+                // Αναμονή για την είσοδο αναζήτησης
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        const query = searchInput.value.trim();
+                        if (query.length >= 2) {
+                            sendMessageToJava({ 
+                                action: 'searchMeals', 
+                                query: query 
+                            });
+                        } else if (query === '') {
+                            sendMessageToJava({ action: 'getInitialData' });
+                        }
+                    }, 300);
+                });
+            }
+            
+            // Προσθήκη λειτουργίας γυρισμού πίσω
+            const dayBtns = document.querySelectorAll('.day-btn');
+            console.log(`🔘 Found ${dayBtns.length} day buttons`);
+            
+            dayBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const selectedDay = btn.dataset.day;
+                    console.log(`🖱️ Day button clicked: ${selectedDay}, current: ${currentDay}`);
+                    
+                    if (selectedDay === currentDay) {
+                        console.log(`🔄 Same day clicked, returning`);
+                        return; // Μην κάνεις τίποτα αν η ημέρα είναι ήδη επιλεγμένη
+                    }
+
+                    currentDay = selectedDay;
+                    updateSelectedDayButton(currentDay);
+                    console.log(`📅 Day changed to: ${currentDay}`);
+                    
+                    // Έλεγχος ύπαρξης γέφυρας
+                    console.log(`🌉 Bridge status: ${bridge ? 'Available' : 'Not available'}`);
+                    
+                    // Ενημέρωση Java με την επιλεγμένη ημέρα
+                    console.log(`📤 Sending selectDay message to Java: ${currentDay}`);
+                    sendMessageToJava({ action: 'selectDay', day: currentDay });
+                    // Τοπική ενημέρωση σε dev mode
+                    if (!bridge) {
+                       updateSelectedCards(localSelections[currentDay]);
+                       updateDailyCaloriesDisplay();
+                       updateMacroNutrientDisplays();
+                   }
+                });
+            });
+
+            const finishBtn = document.querySelector('.finish-btn');
+            if (finishBtn) {
+                finishBtn.addEventListener('click', () => {
+                    if (!allMealsData || allMealsData.length === 0) {
+                        extractMealDataFromDOM();
+                    }
+                    const planByName = {};
+
+                    Object.entries(localSelections).forEach(([day, ids]) => {
+                        planByName[day] = ids.map(id => {
+                            const meal = allMealsData.find(m => m.id === id);
+                            return meal && meal.name ? meal.name : `Meal ${id}`;
+                        });
+                    });
+
+                    const planSummary = encodeURIComponent(JSON.stringify(planByName));
+                    window.location.href = `finalplan.html?plan=${planSummary}`;
+                });
+            }
+
+            const mealContainer = document.getElementById('mealContainer');
+            if (mealContainer) {
+                mealContainer.addEventListener('click', (e) => {
+                    const card = e.target.closest('.meal-card');
+                    if (!card) return;
+
+                    const mealId = parseInt(card.dataset.mealId, 10);
+                    if (isNaN(mealId)) {
+                        showError('Clicked card is missing a valid meal ID.');
+                        return;
+                    }
+
+                    // Τρέχουσα λίστα γευμάτων για τη μέρα
+                    let selected = localSelections[currentDay] || [];
+                    const index = selected.indexOf(mealId);
+
+                    if (index === -1) {
+                        // Προσθήκη γεύματος 
+                        selected.push(mealId);
+                    } else {
+                        // Αφαίρεση γεύματος
+                        selected.splice(index, 1);
+                    }
+
+                    localSelections[currentDay] = selected;
+
+                    // Οπτική ενημέρωση
+                    updateSelectedCards(localSelections[currentDay]);
+
+                    sendMessageToJava({
+                        action: 'toggleMealSelection',
+                        day: currentDay,
+                        mealId: mealId
+                    });
+                   // Ενημέρωση τοπικών υπολογισμών για θερμίδες και μακροθρεπτικά
+                   if (!bridge) {
+                       updateDailyCaloriesDisplay();
+                       updateMacroNutrientDisplays();
+                   }
+                });
+            }
+            
+            console.log('✅ All event listeners set up successfully');
         }
     </script>
 </body>

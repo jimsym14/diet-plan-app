@@ -7,18 +7,19 @@ import java.sql.SQLException;
 import com.example.dietapp.DatabaseConnector;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class SavefromDatabase {
     public static void saveUser(User user) {
         String sql = """
-            INSERT INTO users (name, email, age, height, weight, gender, goal,
-            activity_level, dietary_preferences, food_allergies, meals_per_day)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """;
+                    INSERT INTO users (name, email, age, height, weight, gender, goal,
+                    activity_level, dietary_preferences, food_allergies, meals_per_day)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """;
 
         try (Connection conn = DatabaseConnector.connect();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, user.getName());
             pstmt.setString(2, user.getEmail());
@@ -29,7 +30,7 @@ public class SavefromDatabase {
             pstmt.setString(7, user.getGoal());
             pstmt.setString(8, user.getActivityLevel());
             pstmt.setString(9, user.getDietaryPreferences());
-            pstmt.setString(10, user.getFoodAllergies());
+            pstmt.setString(10, String.join(",", user.getFoodAllergies())); // Convert List to comma-separated string
             pstmt.setInt(11, user.getMealsPerDay());
 
             pstmt.executeUpdate();
@@ -39,6 +40,7 @@ public class SavefromDatabase {
             System.out.println(" Σφάλμα κατά την αποθήκευση: " + e.getMessage());
         }
     }
+
     public static List<User> getAllUsers() {
 
         List<User> users = new ArrayList<>();
@@ -46,10 +48,16 @@ public class SavefromDatabase {
         String sql = "SELECT * FROM users";
 
         try (Connection conn = DatabaseConnector.connect();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
+                // Convert comma-separated string back to List
+                String allergiesStr = rs.getString("food_allergies");
+                List<String> allergiesList = (allergiesStr != null && !allergiesStr.isEmpty())
+                        ? Arrays.asList(allergiesStr.split(","))
+                        : new ArrayList<>();
+
                 User user = new User(
                         rs.getString("name"),
                         rs.getString("email"),
@@ -57,12 +65,12 @@ public class SavefromDatabase {
                         rs.getDouble("height"),
                         rs.getDouble("weight"),
                         rs.getString("gender"),
-                        rs.getString("goal"),
                         rs.getString("activity_level"),
+                        rs.getString("goal"),
                         rs.getString("dietary_preferences"),
-                        rs.getString("food_allergies"),
-                        rs.getInt("meals_per_day")
-                );
+                        allergiesList,
+                        rs.getInt("meals_per_day"),
+                        false);
                 users.add(user);
             }
 
@@ -72,12 +80,13 @@ public class SavefromDatabase {
 
         return users;
     }
+
     public static void printAllUsers() {
         String sql = "SELECT * FROM users";
 
         try (Connection conn = DatabaseConnector.connect();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
 
             System.out.println(" Καταχωρημένοι χρήστες:");
             while (rs.next()) {

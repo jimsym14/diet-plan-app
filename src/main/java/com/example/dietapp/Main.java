@@ -1,16 +1,11 @@
 package com.example.dietapp;
 
 import javafx.application.Application;
-import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.web.WebView;
-import javafx.stage.Screen;
 import javafx.stage.Stage;
 import netscape.javascript.JSObject;
-import com.example.dietapp.model.SavefromDatabase;
 import javafx.application.Platform;
-
-
 
 public class Main extends Application {
     private Controller controller;
@@ -20,17 +15,15 @@ public class Main extends Application {
         WebView webView = new WebView();
         controller = new Controller(webView);
 
-        // Load the initial page
         webView.getEngine().load(Main.class.getResource("/index.html").toExternalForm());
 
-        // Set up bridge once the engine is ready
         webView.getEngine().getLoadWorker().stateProperty().addListener((obs, old, newVal) -> {
             if (newVal == javafx.concurrent.Worker.State.SUCCEEDED) {
                 try {
-                    // Get the current page URL
+                    // Εξαγωγή της τρέχουσας τοποθεσίας URL
                     String location = webView.getEngine().getLocation();
 
-                    // Set up the bridge
+                    // Bridge setup
                     System.out.println(" Setting up JavaFX bridge...");
 
                     JSObject window = (JSObject) webView.getEngine().executeScript("window");
@@ -42,7 +35,7 @@ public class Main extends Application {
                                     "console.log('Bridge created successfully'); }");
                     System.out.println(" JavaFX bridge setup complete");
 
-                    // If we're on the meals page, load the meals
+                    // Φόρτωσε τα γεύματα
                     if (location.endsWith("meals.html")) {
                         System.out.println(" On meals page, scheduling delayed loading of meals...");
                         new Thread(() -> {
@@ -61,43 +54,18 @@ public class Main extends Application {
             }
         });
 
-        // Get the operating system name
-        String osName = System.getProperty("os.name").toLowerCase();
-        Scene scene;
+        Scene scene = new Scene(webView, 975, 650);
 
-        if (osName.contains("mac")) {
-            // For macOS: Set the stage to occupy the entire screen bounds
-            Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
-            stage.setX(screenBounds.getMinX());
-            stage.setY(screenBounds.getMinY());
-            stage.setWidth(screenBounds.getWidth());
-            stage.setHeight(screenBounds.getHeight());
-            scene = new Scene(webView, screenBounds.getWidth(), screenBounds.getHeight());
-        } else if (osName.contains("win")) {
-            // For Windows: Maximize the stage
-            stage.setMaximized(true);
-            scene = new Scene(webView, 900, 700); // Default size, will be overridden by maximization
-        } else {
-            // Fallback for other OS (e.g., Linux)
-            Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
-            stage.setX(screenBounds.getMinX());
-            stage.setY(screenBounds.getMinY());
-            stage.setWidth(screenBounds.getWidth());
-            stage.setHeight(screenBounds.getHeight());
-            scene = new Scene(webView, screenBounds.getWidth(), screenBounds.getHeight());
-        }
-
-        // Set stage title and scene
         stage.setTitle("Diet Plan App");
+        stage.setMinWidth(975);
+        stage.setMinHeight(650);
         stage.setScene(scene);
         stage.show();
     }
 
     public static void main(String[] args) {
+
         launch(args);
-
     }
-
-
 
 }
