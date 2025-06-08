@@ -378,6 +378,12 @@ public class Controller {
 
     private void validateUserForm(JsonObject formData) {
         try {
+            String[] days = { "MO", "TU", "WE", "TH", "FR", "SA", "SU" };
+            for (String day : days) {
+                dietPlan.clearMealsForDay(day);
+            }
+            System.out.println("🔄 Καθαρίστηκαν προηγούμενες επιλογές γευμάτων για όλες τις μέρες");
+
             // Ανάκτηση δεδομένων
             String fullname = formData.has("fullname") ? formData.get("fullname").getAsString() : "";
             String email = formData.has("email") ? formData.get("email").getAsString() : "";
@@ -460,6 +466,7 @@ public class Controller {
 
             // Αυτόματη επιλογή γευμάτων
             if (autoSelectMeals) {
+                System.out.println("✅ Αυτόματη επιλογή γευμάτων ΕΝΕΡΓΟΠΟΙΗΜΕΝΗ - Θα γίνει αυτόματη επιλογή");
                 try {
                     autoSelectMealsForUser(user, allMealsCache);
                     System.out.println("✅ Αυτόματη επιλογή γευμάτων ολοκληρώθηκε με επιτυχία.");
@@ -467,6 +474,8 @@ public class Controller {
                     System.err.println("❌ Σφάλμα κατά την αυτόματη επιλογή γευμάτων: " + e.getMessage());
                     e.printStackTrace();
                 }
+            } else {
+                System.out.println("❌ Αυτόματη επιλογή γευμάτων ΑΠΕΝΕΡΓΟΠΟΙΗΜΕΝΗ - Χρήστης θα επιλέξει μόνος του");
             }
 
             System.out.println(" Ολοκληρώθηκε η καταγραφή & υπολογισμός θερμίδων");
