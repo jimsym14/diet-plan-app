@@ -52,7 +52,7 @@ public class SavefromDatabase {
                 ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                // Convert comma-separated string back to List
+                // Μετατροπή της συμβολοσειράς αλλεργιών σε λίστα
                 String allergiesStr = rs.getString("food_allergies");
                 List<String> allergiesList = (allergiesStr != null && !allergiesStr.isEmpty())
                         ? Arrays.asList(allergiesStr.split(","))
